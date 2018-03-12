@@ -1,0 +1,47 @@
+.thdk-video {
+    float: left;
+    padding-right: 5%;
+    width: 66%;
+    padding-left: 5%;
+}
+
+.hidescrollbar-wrapper {
+    overflow: hidden;
+}
+
+.hidescrollbar {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    margin-right: 14px;
+    padding-right: 28px;
+    padding-bottom: 15px;
+  }
+
+.thdk-subs-wrapper {
+    float: left;
+    width: 23%;
+    padding-top: 30px;
+    padding-bottom: 30px;
+    padding-right: 10px;
+    height: 90%;
+}
+
+.thdk-subs {
+    color:#099709;
+}
+
+.subtitlesLayout2 .subtitlesLine {
+    font-size: 1.5em;
+    line-height: 1em;
+}
+
+#thdk-bg {
+    background-color: black;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+}
