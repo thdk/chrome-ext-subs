@@ -7,6 +7,9 @@
       "default_popup": "hello.html",
       "default_icon": "hello_extensions.png"
     },
+    "permissions": [
+        "http://www.google.com/"
+    ],
     "commands": {
       "_execute_browser_action": {
         "suggested_key": {
@@ -22,9 +25,14 @@
     },
     "content_scripts": [
         {
-          "matches": ["http://www.ceskatelevize.cz/*"],
-          "css": ["mystyles.css"],
-          "js": ["jquery-3.3.1.min.js", "myscript.js"]
-        }
+            "matches": ["http://www.ceskatelevize.cz/*"],
+            "css": ["mystyles.css"],
+            "js": ["jquery-3.3.1.min.js", "myscript.js"]
+        },
+        {
+            "matches": ["http://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php*"],
+            "css": ["mystyles.css"],
+            "js": ["jquery-3.3.1.min.js", "player.js"]
+          }
       ]
   }

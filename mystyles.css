@@ -5,6 +5,19 @@
     padding-left: 5%;
 }
 
+.extra-panel {
+    float: left;
+    width: 77%;
+    margin-top: 1em;
+}
+.extra-panel .sub {
+    font-size: 1.5em;
+}
+
+.center-text {
+    text-align: center;
+}
+
 .hidescrollbar-wrapper {
     overflow: hidden;
 }
@@ -19,8 +32,8 @@
   }
 
 .thdk-subs-wrapper {
-    float: left;
-    width: 23%;
+    float: right;
+    width: 22%;
     padding-top: 30px;
     padding-bottom: 30px;
     padding-right: 10px;
