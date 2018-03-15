@@ -1,6 +1,6 @@
 .thdk-video {
     float: left;
-    padding-right: 5%;
+    padding-right: 1%;
     width: 66%;
     padding-left: 5%;
 }
@@ -33,15 +33,38 @@
 
 .thdk-subs-wrapper {
     float: right;
-    width: 22%;
+    width: 25%;
     padding-top: 30px;
     padding-bottom: 30px;
-    padding-right: 10px;
+    padding-right: 10px;   
     height: 90%;
 }
 
 .thdk-subs {
     color:#099709;
+}
+
+.subtitle-wrapper {
+    margin-bottom: 1em;
+    padding-left: 30px;
+    position: relative;
+}
+
+.subtitle-wrapper .translate {
+    position: absolute;
+    cursor: pointer;
+    left: 0;
+    height: 11px;
+    top: -10px;
+    width: 11px;
+    padding: 10px;
+}
+
+.subtitle-wrapper .original {
+}
+
+.subtitle-wrapper .translation {
+    color: #c3881c;
 }
 
 .subtitlesLayout2 .subtitlesLine {

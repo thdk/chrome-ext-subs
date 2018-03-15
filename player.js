@@ -40,7 +40,7 @@ function init() {
                     video.play();
                 else {
                     video.pause();
-                    videoPaused();
+                    videoPaused();  
                 }
             }
         });
@@ -65,6 +65,17 @@ function init() {
         });
 
         createDom();
+
+        $subs.on("click", ".subtitle-wrapper .translate.none", (e) => {
+            var $parent = $(e.currentTarget).parent();
+            requestTranslation(parseInt($parent.attr("data-sub-id")), (translation) => {
+                console.log("translation done from sidebar: " + translation);
+                $parent
+                    .removeClass("none")
+                    .find(".translation").show()
+                    .find("p").html(translation);
+            });
+        });
 }
 
 function createDom() {
@@ -72,7 +83,8 @@ function createDom() {
     $video.addClass("thdk-video");
     const $template = $(`
     <div class="hidescrollbar-wrapper thdk-subs-wrapper">
-        <div class="thdk-subs hidescrollbar"></div>
+        <div class="thdk-subs hidescrollbar">
+        </div>
     </div>
     <div class="extra-panel">
         <div id="currentSubTranslation" class="center-text sub"></div>
@@ -83,14 +95,24 @@ function createDom() {
     $("body").append(`<div id="thdk-bg"></div>`);
 }
 
-function addSubToDom(subText) {
-    const $sub = $(`<p>${subText}</p>`);
+function addSubToDom(sub) {
+    const $sub = $(`
+        <div class="subtitle-wrapper" data-sub-id="${sub.id}">
+            <div class="translate none icon">T</div>
+            <div class="original">
+                <p>${sub.subtitle}</p>
+            </div>
+            <div class="translation" style="display:none;">
+                <p></p>
+            </div>
+        </div>`);
     $subs.append($sub);
     $sub[0].scrollIntoView({behavior: "smooth", block: "end", inline: "nearest"});
 }
 
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
+        console.log("received message: " + request.msg);
       console.log(sender.tab ?
                   "from a content script:" + sender.tab.url :
                   "from the extension");
@@ -103,7 +125,7 @@ chrome.runtime.onMessage.addListener(
                 addSubToDom(request.sub);
                 break;
             case "subtitleTranslated":
-                $currentTranslation.html(request.sub);
+                // $currentTranslation.html(request.sub);
                 break;
         }
     });
@@ -118,8 +140,19 @@ chrome.runtime.onMessage.addListener(
     function videoPaused() {
         chrome.runtime.sendMessage({
             msg: "videoPaused",
-        }, function() {
+        });
 
+        requestTranslation(null, function(data) {
+            $currentTranslation.html(data);
+        });
+    }
+
+    function requestTranslation(subId = null, callback = null) {
+        chrome.runtime.sendMessage({
+            msg: "translationRequested",
+            subId
+        }, function(response) {
+            callback(response);
         });
     }
 

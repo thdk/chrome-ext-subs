@@ -26,25 +26,23 @@ http('GET', chrome.runtime.getURL('config.json'), '', function (obj) {
 
 // detect makes a Cloud Vision API request with the API key.
 var translate = function (text, cb) {
-console.log(API_KEY);
+    console.log("start request to translate: " + text);
   var url = 'https://translation.googleapis.com/language/translate/v2?key=' + API_KEY;
   var data = {
     q: text,
     target: 'en',
     format: 'text',
     source: 'cs',
-    model: 'base',
+    model: 'nmt',
     key: API_KEY
   };
   http('POST', url, JSON.stringify(data), cb);
 };
 
-
-
-
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
-    console.log(request);
+        console.log(request);
+        console.log(request.subId);
       console.log(sender.tab ?
                   "from a content script:" + sender.tab.url :
                   "from the extension");
@@ -55,35 +53,37 @@ chrome.runtime.onMessage.addListener(
                 var newSub = addSubtitle(request.sub, sender.tab.id);
                 publishSub(sender.tab.id, newSub);
                 break;
-             case "videoPaused":
-                var lastSubId = subs[sender.tab.id].length -1;
-                translate(subs[sender.tab.id][lastSubId], function(response) {
+             case "videoPaused":                
+                break;
+            case "translationRequested":
+                var subId = request.subId ? request.subId : subs[sender.tab.id].subtitles.length -1;
+                console.log("receiving sub with id " +  subId + "for tab: " + sender.tab.id);
+                translate(subs[sender.tab.id].subtitles.filter(s => s.id === subId)[0].subtitle, function(response) {
+                    sendResponse(response.data.translations[0].translatedText);
                     chrome.tabs.sendMessage(sender.tab.id, {
                         msg: "subtitleTranslated",
                         sub: response.data.translations[0].translatedText,
-                        subId: lastSubId
+                        subId: subId
                     });
                 });
-
-                // sendResponse({
-                //     subtitleId: lastSubId,
-                //     sub: subs[sender.tab.id][lastSubId],
-                //     translatedSub: 'Thomas is an idiot'
-                // })
-                break;
+                return true;
+            break;
         }
     });
 
 
-function addSubtitle(sub, tabId) {
+function addSubtitle(subtitle, tabId) {
+    var sub;
     var tabSubs = subs[tabId];
     if (tabSubs) {
-        tabSubs.push(sub);
+        sub = {subtitle: subtitle, id: tabSubs.nextId};
+        tabSubs.subtitles.push(sub);
+        tabSubs.nextId ++;
     } else {
-        tabSubs = new Array({sub});
-        subs[tabId] = tabSubs;
+        sub = {subtitle: subtitle, id: 0};
+        tabSubs = new Array(sub);
+        subs[tabId] = { subtitles: tabSubs, nextId: 1};
     }
-    console.log(subs);
 
     return sub;
 }
@@ -91,7 +91,7 @@ function addSubtitle(sub, tabId) {
 function publishSub(tabId, sub) {
     chrome.tabs.sendMessage(tabId, {
         msg: "subtitlePublished",
-        sub: sub
+        sub: sub,
     });
 }
 
