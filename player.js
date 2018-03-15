@@ -1,8 +1,6 @@
 var subs = new Array();
 var resultSubs = new Array();
 var currentSubs = new Array();
-var treshhold = 1;
-var treshholdRemaining = 0;
 var lastSub;
 var $subtitleShell = $("#subtitlesShell");
 var $subs;
@@ -40,40 +38,31 @@ function init() {
                     video.play();
                 else {
                     video.pause();
-                    videoPaused();  
+                    videoPaused();
                 }
             }
         });
 
         $video.on("timeupdate", function() {
-            var sub = $subtitleShell.find("span").toArray().map(s => $(s).html()).join(' ').trim();
+            var subHtml = $subtitleShell.find("span").toArray().map(s => $(s).html());
+            var sub = subHtml.join();
             if (lastSub !== sub && sub.trim() !== "") {
                 lastSub = sub;
-                addSub(sub);
-                if (treshholdRemaining === 0) {
-                    console.log("new sub pushed into subs: " + sub);
-                    subs.push(sub);
-                }
-                else{
-                    console.log("new subs pusshed into currentsubs: " + sub);
-                    currentSubs.push(sub);
-                    treshholdRemaining--;
-                    if (treshholdRemaining === 0)
-                        resultSubs.push(currentSubs.slice());
-                }
+                subHtml.forEach(subItem => {
+                    addSub(subItem.replace(/^[-]/, ""));
+                });
             }
         });
 
         createDom();
 
         $subs.on("click", ".subtitle-wrapper .translate.none", (e) => {
-            var $parent = $(e.currentTarget).parent();
+            var $icon = $(e.currentTarget);
+            var $parent = $icon.parent();
             requestTranslation(parseInt($parent.attr("data-sub-id")), (translation) => {
                 console.log("translation done from sidebar: " + translation);
-                $parent
-                    .removeClass("none")
-                    .find(".translation").show()
-                    .find("p").html(translation);
+                $parent.find(".translation").show().find("p").html(translation);
+                $icon.removeClass('none');
             });
         });
 }
@@ -96,30 +85,43 @@ function createDom() {
 }
 
 function addSubToDom(sub) {
+    var $lastSubtitle = $subs.find('.subtitle-wrapper:last-child');
+    var continueLastSub = $lastSubtitle && parseInt($lastSubtitle.attr("data-sub-id")) === sub.id;
     const $sub = $(`
         <div class="subtitle-wrapper" data-sub-id="${sub.id}">
             <div class="translate none icon">T</div>
             <div class="original">
                 <p>${sub.subtitle}</p>
             </div>
-            <div class="translation" style="display:none;">
-                <p></p>
+            <div class="translation">
+                <p>${sub.translation}</p>
             </div>
         </div>`);
-    $subs.append($sub);
+
+    if (!sub.translation)
+        $sub.find(".translation").hide();
+
+    if (!continueLastSub)
+        $subs.append($sub);
+    else
+        $lastSubtitle.replaceWith($sub);
+
     $sub[0].scrollIntoView({behavior: "smooth", block: "end", inline: "nearest"});
 }
 
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
         console.log("received message: " + request.msg);
-      console.log(sender.tab ?
+        console.log(sender.tab ?
                   "from a content script:" + sender.tab.url :
                   "from the extension");
 
         switch(request.msg) {
-            case "printSubs":
-                printSubs();
+            case "subtitlesSaved":
+                if (request.copyResult)
+                    alert("Subtiles have been copies to the clipboard");
+                else
+                    alert("Subtiles could not be copied to the clipboard");
                 break;
             case "subtitlePublished":
                 addSubToDom(request.sub);

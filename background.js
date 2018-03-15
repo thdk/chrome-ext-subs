@@ -48,21 +48,36 @@ chrome.runtime.onMessage.addListener(
                   "from the extension");
 
         switch(request.msg) {
+            case "popupButtonClicked":
+                console.log("background received message: popupButtonClicked. " + request.btnName);
+                switch(request.btnName) {
+                    case "openPlayer":
+                        broadcastActiveTabMessage({
+                            msg: "openPlayer"
+                        });
+                    case "saveSubtitles":
+                        saveSubtitles();
+                    break;
+                }
+            break;
             case "newSubTitle":
                 console.log("background js received message for new SubTitle");
                 var newSub = addSubtitle(request.sub, sender.tab.id);
                 publishSub(sender.tab.id, newSub);
                 break;
-             case "videoPaused":                
+             case "videoPaused":
                 break;
             case "translationRequested":
                 var subId = request.subId ? request.subId : subs[sender.tab.id].subtitles.length -1;
-                console.log("receiving sub with id " +  subId + "for tab: " + sender.tab.id);
-                translate(subs[sender.tab.id].subtitles.filter(s => s.id === subId)[0].subtitle, function(response) {
-                    sendResponse(response.data.translations[0].translatedText);
+                console.log("receiving sub with id " +  subId + " for tab: " + sender.tab.id);
+                var subToTranslate = subs[sender.tab.id].subtitles.filter(s => s.id === subId)[0];
+                translate(subToTranslate.subtitle, function(response) {
+                    var translation = response.data.translations[0].translatedText;
+                    sendResponse(translation);
+                    subToTranslate.translation = translation;
                     chrome.tabs.sendMessage(sender.tab.id, {
                         msg: "subtitleTranslated",
-                        sub: response.data.translations[0].translatedText,
+                        sub: translation,
                         subId: subId
                     });
                 });
@@ -71,14 +86,20 @@ chrome.runtime.onMessage.addListener(
         }
     });
 
-
 function addSubtitle(subtitle, tabId) {
     var sub;
     var tabSubs = subs[tabId];
     if (tabSubs) {
-        sub = {subtitle: subtitle, id: tabSubs.nextId};
-        tabSubs.subtitles.push(sub);
-        tabSubs.nextId ++;
+        // if the sentence is not finished yet, add it to the last subtile
+        var lastSub = tabSubs.subtitles[tabSubs.subtitles.length - 1];
+        if (lastSub && !lastSub.subtitle.match(/[?.!]$/)) {
+            lastSub.subtitle += " " + subtitle;
+            sub = { subtitle: lastSub.subtitle, id: lastSub.id };
+        } else {
+            sub = {subtitle: subtitle, id: tabSubs.nextId};
+            tabSubs.subtitles.push(sub);
+            tabSubs.nextId ++;
+        }
     } else {
         sub = {subtitle: subtitle, id: 0};
         tabSubs = new Array(sub);
@@ -88,6 +109,18 @@ function addSubtitle(subtitle, tabId) {
     return sub;
 }
 
+function saveSubtitles() {
+    var dump = "";
+    subs.forEach(t => {
+        t.subtitles.forEach(s => {
+        if(s.translation)
+            dump += s.subtitle + "\t" + s.translation + "\n";
+        });
+    });
+
+    copyToClipboard(dump);
+}
+
 function publishSub(tabId, sub) {
     chrome.tabs.sendMessage(tabId, {
         msg: "subtitlePublished",
@@ -95,6 +128,41 @@ function publishSub(tabId, sub) {
     });
 }
 
+function broadcastActiveTabMessage(msg) {
+      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        chrome.tabs.sendMessage(tabs[0].id, msg);
+      });
+}
+
 function processSub(sub) {
     return sub;
+}
+
+// Copies a string to the clipboard. Must be called from within an
+// event handler such as click. May return false if it failed, but
+// this is not always possible. Browser support for Chrome 43+,
+// Firefox 42+, Safari 10+, Edge and IE 10+.
+// IE: The clipboard feature may be disabled by an administrator. By
+// default a prompt is shown the first time the clipboard is
+// used (per session).
+function copyToClipboard(text) {
+    if (window.clipboardData && window.clipboardData.setData) {
+        // IE specific code path to prevent textarea being shown while dialog is visible.
+        return clipboardData.setData("Text", text);
+
+    } else if (document.queryCommandSupported && document.queryCommandSupported("copy")) {
+        var textarea = document.createElement("textarea");
+        textarea.textContent = text;
+        textarea.style.position = "fixed";  // Prevent scrolling to bottom of page in MS Edge.
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            return document.execCommand("copy");  // Security exception may be thrown by some browsers.
+        } catch (ex) {
+            console.warn("Copy to clipboard failed.", ex);
+            return false;
+        } finally {
+            document.body.removeChild(textarea);
+        }
+    }
 }

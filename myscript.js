@@ -16,12 +16,8 @@ function openPlayer() {
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
         switch(request.msg) {
-            case "popupButtonClicked":
-                switch(request.btnName) {
-                    case "openPlayer":
-                    sendResponse(openPlayer());
-                    break;
-                }
+            case "openPlayer":
+                openPlayer();
             break;
         }
 });

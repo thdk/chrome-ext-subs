@@ -8,18 +8,11 @@ function buttonClicked(event) {
 }
 
 function broadcastButtonClickedMsg(buttonName) {
-    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-        chrome.tabs.sendMessage(tabs[0].id,
-            {
-                msg: "popupButtonClicked",
-                btnName: buttonName
-            }, function(response) {
-                if (response === false)
-                    alert("This website does not contain a supported video");
-                else
-                    console.log("The video player is loaded");
+    chrome.runtime.sendMessage(
+        {
+            msg: "popupButtonClicked",
+            btnName: buttonName
         });
-      });
 }
 
 Array.from(document.getElementsByClassName('button')).forEach(function(element) {
