@@ -8,7 +8,8 @@
       "default_icon": "hello_extensions.png"
     },
     "permissions": [
-        "http://www.google.com/"
+        "http://www.google.com/",
+        "tabs"
     ],
     "commands": {
       "_execute_browser_action": {

@@ -119,6 +119,7 @@ function saveSubtitles() {
     });
 
     copyToClipboard(dump);
+    chrome.tabs.create({ url: "https://docs.google.com/spreadsheets/create"});
 }
 
 function publishSub(tabId, sub) {
