@@ -57,6 +57,12 @@ function init() {
                 });
             }
         });
+
+
+        chrome.runtime.sendMessage(
+            {
+                msg: "videoLoaded"
+            });
 }
 
 function createDom() {

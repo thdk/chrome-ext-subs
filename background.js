@@ -82,17 +82,19 @@ chrome.runtime.onMessage.addListener(
                 });
                 return true;
             break;
-            case "playerLoaded":
-                chrome.runtime.sendMessage({
-                    msg: "togglePopupUI",
-                    class: "player"
-                });
-            break;
             case "videoAvailable":
-                chrome.runtime.sendMessage({
-                    msg: "togglePopupUI"
-                }); 
+             chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+                chrome.pageAction.show(tabs[0].id);
+                chrome.pageAction.setPopup({tabId: tabs[0].id, popup:"popups/site.html"});
+             });
                 break;
+            case "videoLoaded":
+            chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+                chrome.pageAction.show(tabs[0].id);
+                chrome.pageAction.setPopup({tabId: tabs[0].id, popup:"popups/player.html"});
+             });
+            break;
+
         }
     });
 
@@ -132,7 +134,7 @@ function saveSubtitles() {
 
     chrome.runtime.sendMessage({
         msg: "subtitlesSaved",
-    }); 
+    });
 }
 
 function publishSub(tabId, sub) {
