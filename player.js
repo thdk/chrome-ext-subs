@@ -1,6 +1,4 @@
-var subs = new Array();
-var resultSubs = new Array();
-var currentSubs = new Array();
+var selectedSubIds = new Array();
 var lastSub;
 var $subtitleShell = $("#subtitlesShell");
 var $subs;
@@ -8,6 +6,7 @@ var $currentTranslation;
 var $video
 
 $(function() {
+
     init();
 });
 
@@ -20,19 +19,7 @@ function init() {
         return;
 
         $(document).on("keypress", function(event) {
-            console.log(event.keyCode);
-            if (event.keyCode === 115) {
-                console.log("S key pressed");
-                if (treshholdRemaining === 0) {
-                    console.log("get last " + treshhold + " from subs array:");
-                    console.log(subs);
-                    currentSubs = subs.splice(-treshhold, treshhold);
-                    console.log(currentSubs);
-                    console.log(subs);
-                }
-
-                treshholdRemaining = treshhold;
-            } else if (event.keyCode === 32) {
+            if (event.keyCode === 32) {
                 var video = $video[0];
                 if (video.paused)
                     video.play();
@@ -56,14 +43,19 @@ function init() {
 
         createDom();
 
-        $subs.on("click", ".subtitle-wrapper .translate.none", (e) => {
+        $subs.on("click", ".subtitle-wrapper .translate", (e) => {
             var $icon = $(e.currentTarget);
             var $parent = $icon.parent();
-            requestTranslation(parseInt($parent.attr("data-sub-id")), (translation) => {
-                console.log("translation done from sidebar: " + translation);
-                $parent.find(".translation").show().find("p").html(translation);
-                $icon.removeClass('none');
-            });
+            var subId = parseInt($parent.attr("data-sub-id"));
+            var hasTranslation = !$icon.hasClass("none");
+            if (hasTranslation) {
+                ignoreTranslation(subId);
+            } else {
+                requestTranslation(subId, (translation) => {
+                    $parent.find(".translation").show().find("p").html(translation);
+                    $icon.removeClass('none');
+                });
+            }
         });
 }
 
@@ -111,7 +103,6 @@ function addSubToDom(sub) {
 
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
-        console.log("received message: " + request.msg);
         console.log(sender.tab ?
                   "from a content script:" + sender.tab.url :
                   "from the extension");
@@ -127,7 +118,10 @@ chrome.runtime.onMessage.addListener(
                 addSubToDom(request.sub);
                 break;
             case "subtitleTranslated":
-                // $currentTranslation.html(request.sub);
+                selectedSubIds.push(request.sub.id);
+                break;
+            case "onBrowserAction":
+                sendResponse("player");
                 break;
         }
     });
@@ -158,16 +152,6 @@ chrome.runtime.onMessage.addListener(
         });
     }
 
-
-function printSubs() {
-    var printedSubs = "";
-    for(var i = 0; i < resultSubs.length; i ++) {
-        var result = resultSubs[i];
-        for(var j = 0; j < result.length; j ++) {
-            printedSubs += result[j] + "\n";
-        }
-        printedSubs += "\n\n";
+    function ignoreTranslation(subId) {
+        selectedSubIds = selectedSubIds.filter(id => id !== subId);
     }
-
-    console.log(printedSubs);
-}

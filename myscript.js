@@ -1,7 +1,21 @@
-function openPlayer() {
-    var $iframe = $(".player").find("iframe");
+var $iframe;
+
+$(function() {
+    $iframe = $(".player").find("iframe");
     if ($iframe.length === 0)
         $iframe = $(".video-player").find("span");
+    
+    if ($iframe.length !== 0)
+    {
+        chrome.runtime.sendMessage(
+            {
+                msg: "videoAvailable"
+            });
+    }
+});
+
+
+function openPlayer() {
 
     if ($iframe.length !== 0)
     {
@@ -18,6 +32,9 @@ chrome.runtime.onMessage.addListener(
         switch(request.msg) {
             case "openPlayer":
                 openPlayer();
-            break;
+                break;
+            case "onBrowserAction":
+                sendResponse("site");
+                break;
         }
 });

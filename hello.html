@@ -1,7 +1,42 @@
 <html>
     <body>
-        <button id="getSubsBtn" class="button" data-btn-name="saveSubtitles">Copy subs</button>
-        <button id="initPlayerBtn" class="button" data-btn-name="openPlayer">Open player</button>
+        <div class="container player" style="display:none;">
+            <div class="controls">
+                <button id="getSubsBtn" class="button" data-btn-name="saveSubtitles">Copy subs</button>
+            </div>
+            <div class="info" style="display: none;">
+                <h3>Subtiles saved</h3>
+                <a href="" id="openSheetsLink">Open google sheets</a>
+            </div>
+        </div>
+        <div class="container site" style="display:none;">
+                <div class="controls">
+                    <button id="initPlayerBtn" class="button" data-btn-name="openPlayer">Open player</button>
+                </div>
+                <div class="info" style="display: none;">
+                </div>
+            </div>
         <script type="text/javascript" src="popup.js"></script>
+        <style>
+            .container {
+                height: 100%;
+                width: 100%;
+            }
+
+            .controls .button {
+                padding: 1em;
+                margin: 1em;
+                width: 125px;
+            }
+
+            .info {
+                margin: 1em;
+                margin-top: 0;
+            }
+
+            html {
+                
+            }
+        </style>
     </body>
   </html>

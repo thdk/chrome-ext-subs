@@ -49,23 +49,23 @@ chrome.runtime.onMessage.addListener(
 
         switch(request.msg) {
             case "popupButtonClicked":
-                console.log("background received message: popupButtonClicked. " + request.btnName);
                 switch(request.btnName) {
                     case "openPlayer":
                         broadcastActiveTabMessage({
                             msg: "openPlayer"
                         });
+                        break;
                     case "saveSubtitles":
                         saveSubtitles();
                     break;
                 }
             break;
             case "newSubTitle":
-                console.log("background js received message for new SubTitle");
                 var newSub = addSubtitle(request.sub, sender.tab.id);
                 publishSub(sender.tab.id, newSub);
                 break;
              case "videoPaused":
+                console.log("video paused");
                 break;
             case "translationRequested":
                 var subId = request.subId ? request.subId : subs[sender.tab.id].subtitles.length -1;
@@ -77,12 +77,22 @@ chrome.runtime.onMessage.addListener(
                     subToTranslate.translation = translation;
                     chrome.tabs.sendMessage(sender.tab.id, {
                         msg: "subtitleTranslated",
-                        sub: translation,
-                        subId: subId
+                        sub: subToTranslate
                     });
                 });
                 return true;
             break;
+            case "playerLoaded":
+                chrome.runtime.sendMessage({
+                    msg: "togglePopupUI",
+                    class: "player"
+                });
+            break;
+            case "videoAvailable":
+                chrome.runtime.sendMessage({
+                    msg: "togglePopupUI"
+                }); 
+                break;
         }
     });
 
@@ -119,7 +129,10 @@ function saveSubtitles() {
     });
 
     copyToClipboard(dump);
-    chrome.tabs.create({ url: "https://docs.google.com/spreadsheets/create"});
+
+    chrome.runtime.sendMessage({
+        msg: "subtitlesSaved",
+    }); 
 }
 
 function publishSub(tabId, sub) {
