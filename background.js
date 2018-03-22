@@ -41,12 +41,6 @@ var translate = function (text, cb) {
 
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
-        console.log(request);
-        console.log(request.subId);
-      console.log(sender.tab ?
-                  "from a content script:" + sender.tab.url :
-                  "from the extension");
-
         switch(request.msg) {
             case "popupButtonClicked":
                 switch(request.btnName) {
@@ -56,7 +50,9 @@ chrome.runtime.onMessage.addListener(
                         });
                         break;
                     case "saveSubtitles":
-                        saveSubtitles();
+                        chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+                            saveSubtitles(tabs[0].id);
+                        });
                     break;
                 }
             break;
@@ -64,12 +60,13 @@ chrome.runtime.onMessage.addListener(
                 var newSub = addSubtitle(request.sub, sender.tab.id);
                 publishSub(sender.tab.id, newSub);
                 break;
-             case "videoPaused":
-                console.log("video paused");
+            case "ignoreSubtitleTranslation":
+                ignoreSubtitleTranslation(sender.tab.id, request.subId);
+                break;
+            case "videoPaused":
                 break;
             case "translationRequested":
                 var subId = request.subId ? request.subId : subs[sender.tab.id].subtitles.length -1;
-                console.log("receiving sub with id " +  subId + " for tab: " + sender.tab.id);
                 var subToTranslate = subs[sender.tab.id].subtitles.filter(s => s.id === subId)[0];
                 translate(subToTranslate.subtitle, function(response) {
                     var translation = response.data.translations[0].translatedText;
@@ -83,20 +80,20 @@ chrome.runtime.onMessage.addListener(
                 return true;
             break;
             case "videoAvailable":
-             chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-                chrome.pageAction.show(tabs[0].id);
-                chrome.pageAction.setPopup({tabId: tabs[0].id, popup:"popups/site.html"});
-             });
+                setPageActionPopup("site");
                 break;
             case "videoLoaded":
-            chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-                chrome.pageAction.show(tabs[0].id);
-                chrome.pageAction.setPopup({tabId: tabs[0].id, popup:"popups/player.html"});
-             });
+                setPageActionPopup("player");
             break;
-
         }
     });
+
+function setPageActionPopup(popupName) {
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        chrome.pageAction.show(tabs[0].id);
+        chrome.pageAction.setPopup({tabId: tabs[0].id, popup:"popups/" + popupName + ".html"});
+     });
+}
 
 function addSubtitle(subtitle, tabId) {
     var sub;
@@ -121,13 +118,12 @@ function addSubtitle(subtitle, tabId) {
     return sub;
 }
 
-function saveSubtitles() {
+function saveSubtitles(tabId) {
     var dump = "";
-    subs.forEach(t => {
-        t.subtitles.forEach(s => {
+    var tabSubs = subs[tabId];
+    tabSubs.subtitles.forEach(s => {
         if(s.translation)
             dump += s.subtitle + "\t" + s.translation + "\n";
-        });
     });
 
     copyToClipboard(dump);
@@ -135,6 +131,10 @@ function saveSubtitles() {
     chrome.runtime.sendMessage({
         msg: "subtitlesSaved",
     });
+}
+
+function ignoreSubtitleTranslation(tabId, subId) {
+    subs[tabId].subtitles.filter(s => s.id === subId)[0].translation = null;
 }
 
 function publishSub(tabId, sub) {

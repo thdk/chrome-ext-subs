@@ -68,6 +68,10 @@
     margin-top: 0.1em;
 }
 
+.subtitle-wrapper .translation.ignored {
+    color: #808080;
+}
+
 .subtitlesLayout2 .subtitlesLine {
     font-size: 1.5em;
     line-height: 1em;

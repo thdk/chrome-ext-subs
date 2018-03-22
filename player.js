@@ -1,4 +1,3 @@
-var selectedSubIds = new Array();
 var lastSub;
 var $subtitleShell = $("#subtitlesShell");
 var $subs;
@@ -50,12 +49,16 @@ function init() {
             var hasTranslation = !$icon.hasClass("none");
             if (hasTranslation) {
                 ignoreTranslation(subId);
+                $parent.find(".translation").addClass("ignored");
+                $icon.html("T");
             } else {
                 requestTranslation(subId, (translation) => {
                     $parent.find(".translation").show().find("p").html(translation);
-                    $icon.removeClass('none');
+                    $icon.html("I");
                 });
             }
+
+            $icon.toggleClass('none', hasTranslation);
         });
 
 
@@ -124,7 +127,6 @@ chrome.runtime.onMessage.addListener(
                 addSubToDom(request.sub);
                 break;
             case "subtitleTranslated":
-                selectedSubIds.push(request.sub.id);
                 break;
             case "onBrowserAction":
                 sendResponse("player");
@@ -152,12 +154,15 @@ chrome.runtime.onMessage.addListener(
     function requestTranslation(subId = null, callback = null) {
         chrome.runtime.sendMessage({
             msg: "translationRequested",
-            subId
+            subId: subId
         }, function(response) {
             callback(response);
         });
     }
 
     function ignoreTranslation(subId) {
-        selectedSubIds = selectedSubIds.filter(id => id !== subId);
+        chrome.runtime.sendMessage({
+            msg: "ignoreSubtitleTranslation",
+            subId
+        });
     }
