@@ -52,13 +52,34 @@ function init() {
                 $parent.find(".translation").addClass("ignored");
                 $icon.html("T");
             } else {
-                requestTranslation(subId, (translation) => {
+                requestTranslation(subId, null, (translation) => {
                     $parent.find(".translation").show().find("p").html(translation);
                     $icon.html("I");
                 });
             }
 
             $icon.toggleClass('none', hasTranslation);
+        });
+
+        $subs.on("click", ".subtitle-wrapper .original p span", (e) => {
+            var $span = $(e.currentTarget);
+            var $parent = $span.parents(".subtitle-wrapper");
+            var subId = parseInt($parent.attr("data-sub-id"));
+            var text = $span.html().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+            requestTranslation(subId, text, (translation) => {
+                const $template = $(`
+                    <div class="extra">
+                        <div class="extra-original">
+                            ${text}
+                        </div>
+                        <div class="extra-translation">
+                            ${translation}
+                        </div>
+                        <div class="clear"></div>
+                    </div>
+                    `);
+                $template.insertAfter($parent.find(".translation").show().find("p"));
+            });
         });
 
 
@@ -95,9 +116,20 @@ function addSubToDom(sub) {
                 <p>${sub.subtitle}</p>
             </div>
             <div class="translation">
-                <p>${sub.translation}</p>
+                <p>${sub.translation || ""}</p>
             </div>
         </div>`);
+
+    const allowWordTranslation = true;
+    if (allowWordTranslation)
+        $sub.find(".original p")
+            .empty()
+            .append(
+                sub.subtitle.split(' ')
+                    .map(s => {
+                        return `<span>${s}</span> `;
+                    })
+                );
 
     if (!sub.translation)
         $sub.find(".translation").hide();
@@ -151,10 +183,11 @@ chrome.runtime.onMessage.addListener(
         });
     }
 
-    function requestTranslation(subId = null, callback = null) {
+    function requestTranslation(subId = null, text = null, callback = null) {
         chrome.runtime.sendMessage({
             msg: "translationRequested",
-            subId: subId
+            subId: subId,
+            text
         }, function(response) {
             callback(response);
         });

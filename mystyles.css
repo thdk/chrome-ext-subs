@@ -1,3 +1,7 @@
+.clear {
+    clear: both;
+}
+
 .thdk-video {
     float: left;
     padding-right: 1%;
@@ -61,15 +65,35 @@
 }
 
 .subtitle-wrapper .original {
+    margin-bottom: 0.5em;
+}
+
+.subtitle-wrapper .translation p {
+    margin-bottom: 0.5em;
+}
+
+.subtitle-wrapper .original p span:hover {
+    cursor: pointer;
+    color:  #c3881c;
 }
 
 .subtitle-wrapper .translation {
     color: #c3881c;
-    margin-top: 0.1em;
+    margin-top: 0.2em;
 }
 
 .subtitle-wrapper .translation.ignored {
     color: #808080;
+}
+
+.extra-original {
+    float: left;
+    width: 50%;
+}
+
+.extra-translation {
+    float: left;
+    width: 50%;
 }
 
 .subtitlesLayout2 .subtitlesLine {

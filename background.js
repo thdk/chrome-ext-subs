@@ -68,10 +68,22 @@ chrome.runtime.onMessage.addListener(
             case "translationRequested":
                 var subId = request.subId ? request.subId : subs[sender.tab.id].subtitles.length -1;
                 var subToTranslate = subs[sender.tab.id].subtitles.filter(s => s.id === subId)[0];
-                translate(subToTranslate.subtitle, function(response) {
+                var textToTranslate = request.text || subToTranslate.subtitle;
+                translate(textToTranslate, function(response) {
                     var translation = response.data.translations[0].translatedText;
                     sendResponse(translation);
-                    subToTranslate.translation = translation;
+                    if (request.text) {
+
+                        // just a single / few word(s) were translated
+                        const extra = {original: request.text, translation};
+                        if (subToTranslate.extras)
+                            subToTranslate.extras.push(extra);
+                        else
+                            subToTranslate.extras = [{extra}];
+                    } else {
+                        // complete subtitle was translated
+                        subToTranslate.translation = translation;
+                    }
                     chrome.tabs.sendMessage(sender.tab.id, {
                         msg: "subtitleTranslated",
                         sub: subToTranslate
