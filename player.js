@@ -2,7 +2,17 @@ var lastSub;
 var $subtitleShell = $("#subtitlesShell");
 var $subs;
 var $currentTranslation;
-var $video
+var $video;
+
+var $subsById = new Array();
+
+let textSelection = { text: ''};
+
+const settings = {
+    scrollIntoView: false,
+    translateOnPause: true,
+    showSubsFromOldToNew: true
+}
 
 $(function() {
 
@@ -20,12 +30,21 @@ function init() {
         $(document).on("keypress", function(event) {
             if (event.keyCode === 32) {
                 var video = $video[0];
-                if (video.paused)
+                if (video.paused) {
                     video.play();
+                    videoResumed();
+                }
                 else {
                     video.pause();
                     videoPaused();
                 }
+            }
+        });
+
+        $(document).on("keyup", function(event) {
+            if (event.keyCode === 17 && textSelection.text) {
+                requestTranslation($subsById[textSelection.subId], textSelection.subId, textSelection.text);
+                textSelection.subId = -1;
             }
         });
 
@@ -52,10 +71,8 @@ function init() {
                 $parent.find(".translation").addClass("ignored");
                 $icon.html("T");
             } else {
-                requestTranslation(subId, null, (translation) => {
-                    $parent.find(".translation").show().find("p").html(translation);
-                    $icon.html("I");
-                });
+                $icon.html("I");
+                requestTranslation($parent, subId, null);
             }
 
             $icon.toggleClass('none', hasTranslation);
@@ -66,20 +83,22 @@ function init() {
             var $parent = $span.parents(".subtitle-wrapper");
             var subId = parseInt($parent.attr("data-sub-id"));
             var text = $span.html().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
-            requestTranslation(subId, text, (translation) => {
-                const $template = $(`
-                    <div class="extra">
-                        <div class="extra-original">
-                            ${text}
-                        </div>
-                        <div class="extra-translation">
-                            ${translation}
-                        </div>
-                        <div class="clear"></div>
-                    </div>
-                    `);
-                $template.insertAfter($parent.find(".translation").show().find("p"));
-            });
+            // wait for more text
+            if (e.ctrlKey) {
+                if (textSelection.subId !== subId)
+                    textSelection.text = text;
+                else
+                    textSelection.text += " " + text;
+
+                textSelection.subId = subId;
+
+                if (!$subsById[subId])
+                    $subsById[subId] = $parent;
+
+                return;
+            }
+
+            requestTranslation($parent, subId, text);
         });
 
 
@@ -104,6 +123,34 @@ function createDom() {
     $subs = $template.find(".thdk-subs");
     $currentTranslation = $template.find("#currentSubTranslation");
     $("body").append(`<div id="thdk-bg"></div>`);
+}
+
+function addTranslationTodom(sub) {
+    const $sub = $subsById[sub.id];
+    if (!$sub)
+        return;
+
+    if (sub.translation || sub.extras) {
+        var $translation = $sub.find(".translation").show();
+        $translation.find("p").html(sub.translation);
+        if (sub.extras) {
+            const extras = sub.extras.map(ex => {
+                return $(`
+                    <div class="extra">
+                        <div class="extra-original">
+                            ${ex.original}
+                        </div>
+                        <div class="extra-translation">
+                            ${ex.translation}
+                        </div>
+                        <div class="clear"></div>
+                    </div>
+                    `);
+            });
+            $translation.find(".extra").remove();
+            $translation.append(extras);
+        }
+    }
 }
 
 function addSubToDom(sub) {
@@ -136,10 +183,13 @@ function addSubToDom(sub) {
 
     if (!continueLastSub)
         $subs.append($sub);
-    else
+    else {
         $lastSubtitle.replaceWith($sub);
+        $subsById[sub.id] = $sub;
+    }
 
-    $sub[0].scrollIntoView({behavior: "smooth", block: "end", inline: "nearest"});
+    if (settings.scrollIntoView)
+        $sub[0].scrollIntoView({behavior: "smooth", block: "end", inline: "nearest"});
 }
 
 chrome.runtime.onMessage.addListener(
@@ -159,6 +209,11 @@ chrome.runtime.onMessage.addListener(
                 addSubToDom(request.sub);
                 break;
             case "subtitleTranslated":
+                addTranslationTodom(request.sub);
+
+                if ($video[0].paused)
+                    $currentTranslation.html(request.sub.translation);
+
                 break;
             case "onBrowserAction":
                 sendResponse("player");
@@ -174,21 +229,28 @@ chrome.runtime.onMessage.addListener(
     }
 
     function videoPaused() {
+        requestTranslation();
         chrome.runtime.sendMessage({
             msg: "videoPaused",
         });
-
-        requestTranslation(null, function(data) {
-            $currentTranslation.html(data);
-        });
     }
 
-    function requestTranslation(subId = null, text = null, callback = null) {
+    function videoResumed() {
+        $currentTranslation.empty();
+    }
+
+    function requestTranslation($sub, subId = null, text = null, callback = null) {
+        if (!$subsById[subId] && $sub)
+            $subsById[subId] = $sub;
+
         chrome.runtime.sendMessage({
             msg: "translationRequested",
             subId: subId,
             text
         }, function(response) {
+            if (!callback)
+                return;
+
             callback(response);
         });
     }

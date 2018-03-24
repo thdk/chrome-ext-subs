@@ -68,27 +68,7 @@ chrome.runtime.onMessage.addListener(
             case "translationRequested":
                 var subId = request.subId ? request.subId : subs[sender.tab.id].subtitles.length -1;
                 var subToTranslate = subs[sender.tab.id].subtitles.filter(s => s.id === subId)[0];
-                var textToTranslate = request.text || subToTranslate.subtitle;
-                translate(textToTranslate, function(response) {
-                    var translation = response.data.translations[0].translatedText;
-                    sendResponse(translation);
-                    if (request.text) {
-
-                        // just a single / few word(s) were translated
-                        const extra = {original: request.text, translation};
-                        if (subToTranslate.extras)
-                            subToTranslate.extras.push(extra);
-                        else
-                            subToTranslate.extras = [{extra}];
-                    } else {
-                        // complete subtitle was translated
-                        subToTranslate.translation = translation;
-                    }
-                    chrome.tabs.sendMessage(sender.tab.id, {
-                        msg: "subtitleTranslated",
-                        sub: subToTranslate
-                    });
-                });
+                translationRequested(subToTranslate, sender.tab.id, request.text);
                 return true;
             break;
             case "videoAvailable":
@@ -115,7 +95,9 @@ function addSubtitle(subtitle, tabId) {
         var lastSub = tabSubs.subtitles[tabSubs.subtitles.length - 1];
         if (lastSub && !lastSub.subtitle.match(/[?.!]$/)) {
             lastSub.subtitle += " " + subtitle;
-            sub = { subtitle: lastSub.subtitle, id: lastSub.id };
+            sub = cloneSub(lastSub);
+            if (sub.translation)
+                translationRequested(lastSub, tabId);
         } else {
             sub = {subtitle: subtitle, id: tabSubs.nextId};
             tabSubs.subtitles.push(sub);
@@ -130,12 +112,40 @@ function addSubtitle(subtitle, tabId) {
     return sub;
 }
 
+function translationRequested(sub, tabId, text = null) {
+    var textToTranslate = text || sub.subtitle;
+    translate(textToTranslate, function(response) {
+        var translation = response.data.translations[0].translatedText;
+        if (text) {
+            // just a single / few word(s) were translated
+            const extra = {original: text, translation};
+            if (sub.extras)
+                sub.extras.push(extra);
+            else
+                sub.extras = [extra];
+        } else {
+            // complete subtitle was translated
+            sub.translation = translation;
+        }
+        chrome.tabs.sendMessage(tabId, {
+            msg: "subtitleTranslated",
+            sub: sub
+        });
+    });
+}
+
 function saveSubtitles(tabId) {
     var dump = "";
     var tabSubs = subs[tabId];
     tabSubs.subtitles.forEach(s => {
-        if(s.translation)
-            dump += s.subtitle + "\t" + s.translation + "\n";
+        if(s.translation || s.extras) {
+            if (s.translation)
+                dump += s.subtitle + "\t" + s.translation + "\n";
+            if (s.extras)
+                s.extras.forEach(e => dump += e.original + "\t" + e.translation + "\n");
+
+            dump += "\n";
+        }
     });
 
     copyToClipboard(dump);
@@ -164,6 +174,15 @@ function broadcastActiveTabMessage(msg) {
 
 function processSub(sub) {
     return sub;
+}
+
+function cloneSub(sub) {
+    return {
+        subtitle: sub.subtitle,
+        id: sub.id,
+        extras: sub.extras,
+        translation: sub.translation
+    };
 }
 
 // Copies a string to the clipboard. Must be called from within an

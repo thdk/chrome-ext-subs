@@ -4,18 +4,18 @@
 
 .thdk-video {
     float: left;
-    padding-right: 1%;
     width: 66%;
-    padding-left: 5%;
+    padding: 1em;
 }
 
 .extra-panel {
     float: left;
-    width: 74%;
+    width: 69%;
     margin-top: 1em;
 }
 .extra-panel .sub {
-    font-size: 1.5em;
+    line-height: 2;
+    font-size: 1.2em
 }
 
 .center-text {
@@ -37,7 +37,7 @@
 
 .thdk-subs-wrapper {
     float: right;
-    width: 25%;
+    width: 30%;
     padding-top: 30px;
     padding-bottom: 30px;
     padding-right: 10px;
