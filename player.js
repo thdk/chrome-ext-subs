@@ -9,7 +9,7 @@ var $subsById = new Array();
 let textSelection = { text: ''};
 
 const settings = {
-    scrollIntoView: false,
+    scrollIntoView: true,
     translateOnPause: true,
     showSubsFromOldToNew: true
 }
@@ -78,6 +78,20 @@ function init() {
             $icon.toggleClass('none', hasTranslation);
         });
 
+        $subs.on("click", ".subtitle-wrapper .translation .extra", (e) => {
+            const $extra = $(e.currentTarget);
+            const subId = +$extra.parents(".subtitle-wrapper").attr("data-sub-id");
+            const $sub = $subsById[subId];
+            const $original = $extra.find(".extra-original");
+            chrome.runtime.sendMessage(
+                {
+                    msg: "deleteExtraTranslation",
+                    text: $original.html().trim(),
+                    subId: subId
+                });
+            $extra.remove();
+        });
+
         $subs.on("click", ".subtitle-wrapper .original p span", (e) => {
             var $span = $(e.currentTarget);
             var $parent = $span.parents(".subtitle-wrapper");
@@ -131,7 +145,7 @@ function addTranslationTodom(sub) {
         return;
 
     if (sub.translation || sub.extras) {
-        var $translation = $sub.find(".translation").show();
+        var $translation = $sub.find(".translation").removeClass("ignored").show();
         $translation.find("p").html(sub.translation);
         if (sub.extras) {
             const extras = sub.extras.map(ex => {
@@ -183,10 +197,11 @@ function addSubToDom(sub) {
 
     if (!continueLastSub)
         $subs.append($sub);
-    else {
+    else
         $lastSubtitle.replaceWith($sub);
-        $subsById[sub.id] = $sub;
-    }
+
+    // make a dom cache for the subtitle elements
+    $subsById[sub.id] = $sub;
 
     if (settings.scrollIntoView)
         $sub[0].scrollIntoView({behavior: "smooth", block: "end", inline: "nearest"});
@@ -194,10 +209,6 @@ function addSubToDom(sub) {
 
 chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
-        console.log(sender.tab ?
-                  "from a content script:" + sender.tab.url :
-                  "from the extension");
-
         switch(request.msg) {
             case "subtitlesSaved":
                 if (request.copyResult)
@@ -247,11 +258,6 @@ chrome.runtime.onMessage.addListener(
             msg: "translationRequested",
             subId: subId,
             text
-        }, function(response) {
-            if (!callback)
-                return;
-
-            callback(response);
         });
     }
 

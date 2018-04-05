@@ -1,5 +1,8 @@
 var subs = new Array();
 var API_KEY = '';
+const settings = {
+    realTime: true
+}
 
 // http makes an HTTP request and calls callback with parsed JSON.
 var http = function (method, url, body, cb) {
@@ -59,9 +62,14 @@ chrome.runtime.onMessage.addListener(
             case "newSubTitle":
                 var newSub = addSubtitle(request.sub, sender.tab.id);
                 publishSub(sender.tab.id, newSub);
+                if (settings.realTime)
+                    translationRequested(newSub, sender.tab.id);
                 break;
             case "ignoreSubtitleTranslation":
                 ignoreSubtitleTranslation(sender.tab.id, request.subId);
+                break;
+            case "deleteExtraTranslation":
+                deleteExtraTranslation(sender.tab.id, request.subId, request.text);
                 break;
             case "videoPaused":
                 break;
@@ -157,6 +165,11 @@ function saveSubtitles(tabId) {
 
 function ignoreSubtitleTranslation(tabId, subId) {
     subs[tabId].subtitles.filter(s => s.id === subId)[0].translation = null;
+}
+
+function deleteExtraTranslation(tabId, subId, text) {
+    var sub = subs[tabId].subtitles.filter(s => s.id === subId)[0];
+    sub.extras = sub.extras.filter(e => e.original !== text);
 }
 
 function publishSub(tabId, sub) {
