@@ -60,23 +60,14 @@ chrome.runtime.onMessage.addListener(
                 }
             break;
             case "newSubTitle":
-                var newSub = addSubtitle(request.sub, sender.tab.id);
-                publishSub(sender.tab.id, newSub);
+                publishSub(sender.tab.id, request.sub);
                 if (settings.realTime)
-                    translationRequested(newSub, sender.tab.id);
-                break;
-            case "ignoreSubtitleTranslation":
-                ignoreSubtitleTranslation(sender.tab.id, request.subId);
-                break;
-            case "deleteExtraTranslation":
-                deleteExtraTranslation(sender.tab.id, request.subId, request.text);
+                    translationRequested(request.sub, sender.tab.id);
                 break;
             case "videoPaused":
                 break;
             case "translationRequested":
-                var subId = request.subId ? request.subId : subs[sender.tab.id].subtitles.length -1;
-                var subToTranslate = subs[sender.tab.id].subtitles.filter(s => s.id === subId)[0];
-                translationRequested(subToTranslate, sender.tab.id, request.text);
+                translationRequested(request.sub, sender.tab.id, request.text);
                 return true;
             break;
             case "videoAvailable":
@@ -95,34 +86,9 @@ function setPageActionPopup(popupName) {
      });
 }
 
-function addSubtitle(subtitle, tabId) {
-    var sub;
-    var tabSubs = subs[tabId];
-    if (tabSubs) {
-        // if the sentence is not finished yet, add it to the last subtile
-        var lastSub = tabSubs.subtitles[tabSubs.subtitles.length - 1];
-        if (lastSub && !lastSub.subtitle.match(/[?.!]$/)) {
-            lastSub.subtitle += " " + subtitle;
-            sub = cloneSub(lastSub);
-            if (sub.translation)
-                translationRequested(lastSub, tabId);
-        } else {
-            sub = {subtitle: subtitle, id: tabSubs.nextId};
-            tabSubs.subtitles.push(sub);
-            tabSubs.nextId ++;
-        }
-    } else {
-        sub = {subtitle: subtitle, id: 0};
-        tabSubs = new Array(sub);
-        subs[tabId] = { subtitles: tabSubs, nextId: 1};
-    }
-
-    return sub;
-}
-
 function translationRequested(sub, tabId, text = null) {
     var textToTranslate = text || sub.subtitle;
-    translate(textToTranslate, function(response) {
+    translate(textToTranslate, (response) => {
         var translation = response.data.translations[0].translatedText;
         if (text) {
             // just a single / few word(s) were translated
@@ -142,10 +108,9 @@ function translationRequested(sub, tabId, text = null) {
     });
 }
 
-function saveSubtitles(tabId) {
+function saveSubtitles(subs) {
     var dump = "";
-    var tabSubs = subs[tabId];
-    tabSubs.subtitles.forEach(s => {
+    subs.subtitles.forEach(s => {
         if(s.translation || s.extras) {
             if (s.translation)
                 dump += s.subtitle + "\t" + s.translation + "\n";
@@ -163,15 +128,6 @@ function saveSubtitles(tabId) {
     });
 }
 
-function ignoreSubtitleTranslation(tabId, subId) {
-    subs[tabId].subtitles.filter(s => s.id === subId)[0].translation = null;
-}
-
-function deleteExtraTranslation(tabId, subId, text) {
-    var sub = subs[tabId].subtitles.filter(s => s.id === subId)[0];
-    sub.extras = sub.extras.filter(e => e.original !== text);
-}
-
 function publishSub(tabId, sub) {
     chrome.tabs.sendMessage(tabId, {
         msg: "subtitlePublished",
@@ -183,19 +139,6 @@ function broadcastActiveTabMessage(msg) {
       chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
         chrome.tabs.sendMessage(tabs[0].id, msg);
       });
-}
-
-function processSub(sub) {
-    return sub;
-}
-
-function cloneSub(sub) {
-    return {
-        subtitle: sub.subtitle,
-        id: sub.id,
-        extras: sub.extras,
-        translation: sub.translation
-    };
 }
 
 // Copies a string to the clipboard. Must be called from within an

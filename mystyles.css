@@ -18,6 +18,14 @@
     font-size: 1.2em
 }
 
+.extra-panel .sub p.original {
+    color: #099709;
+}
+
+.extra-panel .sub p.translation {
+    color: #b4790d;
+}
+
 .center-text {
     text-align: center;
 }
