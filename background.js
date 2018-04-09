@@ -1,7 +1,7 @@
 var subs = new Array();
 var API_KEY = '';
 const settings = {
-    realTime: true
+    realTime: false
 }
 
 // http makes an HTTP request and calls callback with parsed JSON.

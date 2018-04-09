@@ -29,6 +29,18 @@ function init() {
     if ($video.length === 0)
         return;
 
+        $video.on("pause", (e) => {
+            console.log("video paused");
+            $video[0].pause();
+            videoPaused();
+        });
+
+        $video.on("play", (e) => {
+            console.log("video played");
+            $video[0].play();
+            videoResumed();
+        });
+
         $(document).on("keydown", function(event) {
             if (event.keyCode === 32) {
                 var video = $video[0];
@@ -224,8 +236,16 @@ chrome.runtime.onMessage.addListener(
                 const translatedSub = updateSubtitle(request.sub);
                 addTranslationTodom(translatedSub);
 
-                if ($video[0].paused)
+                if ($video[0].paused) {
+                    console.log("paused");
+                    console.log(translatedSub);
                     fillCurrentTranslation(translatedSub);
+                }
+                else {
+                    console.log($video[0]);
+                    console.log("not paused");
+                    console.log(translatedSub);
+                }
 
                 break;
             case "onBrowserAction":
@@ -235,16 +255,24 @@ chrome.runtime.onMessage.addListener(
     });
 
     function getNextTranslation() {
-        fillCurrentTranslation(subs.subtitles.filter(s => s.id === currentSubId + 1)[0]);
+        const nextSub = subs.subtitles.filter(s => s.id === currentSubId + 1)[0];
+        if (!nextSub.translation)
+            requestTranslation(nextSub.id);
+
+        fillCurrentTranslation(nextSub);
     }
 
     function getPreviousTranslation() {
-        fillCurrentTranslation(subs.subtitles.filter(s => s.id === currentSubId - 1)[0]);
+        const prevSub = subs.subtitles.filter(s => s.id === currentSubId - 1)[0];
+        if (!prevSub.translation)
+            requestTranslation(prevSub.id);
+
+        fillCurrentTranslation(prevSub);
     }
 
     function fillCurrentTranslation(sub) {
         currentSubId = sub.id;
-        $currentTranslation.empty().append(`<p class="original">${sub.subtitle}</p><p class="translation">${sub.translation}`);
+        $currentTranslation.empty().append(`<p class="original">${sub.subtitle}</p><p class="translation">${sub.translation || ''}`);
     }
 
     function updateSubtitle(sub) {
@@ -303,14 +331,26 @@ chrome.runtime.onMessage.addListener(
         chrome.runtime.sendMessage({
             msg: "videoPaused",
         });
+        focusDocument();
     }
 
     function videoResumed() {
         $currentTranslation.empty();
+        focusDocument();
+    }
+
+    function focusDocument() {
+        // Give the document focus
+        window.focus();
+
+        // Remove focus from any focused element
+        if (document.activeElement) {
+            document.activeElement.blur();
+        }
     }
 
     function requestTranslation(subId = null, text = null) {
-        subId = subId ? subId : subs.subtitles.length -1;
+        subId = (subId !== undefined && subId !== null) ? subId : subs.subtitles.length -1;
         const subToTranslate = subs.subtitles.filter(s => s.id === subId)[0];
         chrome.runtime.sendMessage({
             msg: "translationRequested",
