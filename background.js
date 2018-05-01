@@ -4,6 +4,16 @@ const settings = {
     realTime: false
 }
 
+
+firebase.initializeApp({
+    apiKey: 'AIzaSyCoXpRAmfK7eVtL8-5NL_YjzYwFnCrTKa4',
+    authDomain: 'czech-subs-1520975638509.firebaseapp.com',
+    projectId: 'czech-subs-1520975638509'
+  });
+
+  // Initialize Cloud Firestore through Firebase
+  var database = firebase.firestore();
+
 // http makes an HTTP request and calls callback with parsed JSON.
 var http = function (method, url, body, cb) {
   var xhr = new XMLHttpRequest();
