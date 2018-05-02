@@ -3,19 +3,7 @@ var API_KEY = '';
 const settings = {
     realTime: false
 };
-
-firebase.initializeApp({
-    apiKey: 'AIzaSyCoXpRAmfK7eVtL8-5NL_YjzYwFnCrTKa4',
-    authDomain: 'czech-subs-1520975638509.firebaseapp.com',
-    projectId: 'czech-subs-1520975638509'
-  });
-
-  // Initialize Cloud Firestore through Firebase
-  const database = firebase.firestore();
-  const fireBaseSettings = {
-       timestampsInSnapshots: true
-    };
-    database.settings(fireBaseSettings);
+let database = null;
 
 // http makes an HTTP request and calls callback with parsed JSON.
 var http = function (method, url, body, cb) {
@@ -38,6 +26,20 @@ var http = function (method, url, body, cb) {
 http('GET', chrome.runtime.getURL('config.json'), '', function (obj) {
   API_KEY = obj.key;
   document.dispatchEvent(new Event('config-loaded'));
+
+  // todo: make async!
+  firebase.initializeApp({
+    apiKey: API_KEY,
+    authDomain: 'czech-subs-1520975638509.firebaseapp.com',
+    projectId: 'czech-subs-1520975638509'
+  });
+
+  // Initialize Cloud Firestore through Firebase
+  database = firebase.firestore();
+  const fireBaseSettings = {
+       timestampsInSnapshots: true
+    };
+    database.settings(fireBaseSettings);
 });
 
 // detect makes a Cloud Vision API request with the API key.
@@ -143,21 +145,39 @@ function saveSubtitles(subs) {
 
 function publishSub(tabId, sub) {
     // Add a new document with a generated id.
-    database.collection("subtitles").add(sub)
-    .then(function(docRef) {
-        console.log("Document written with ID: ", docRef.id);
-        sub.id = docRef.id;
-        // todo: player.js should listen to realtime databse updates instead of the below message
+    storeAsync(sub).then(s => {
         chrome.tabs.sendMessage(tabId, {
             msg: "subtitlePublished",
-            sub: sub,
+            sub: s,
         });
-    })
-    .catch(function(error) {
-        console.error("Error adding document: ", error);
     });
+}
 
+function waitAsync(delayInMs, resolveWith) {
+    return new Promise((resolve, reject) => {
+        base.setTimeout(delayInMs, () => resolve(resolveWith));
+    });
+}
 
+function storeAsync(sub) {
+    // wait for database to be initialized
+    if (database == null) {
+        console.log("database not ready. retry in 500ms");
+        return waitAsync(500, sub).then((s) => storeAsync(s));
+    }
+
+    return new Promise((resolve, reject) => {
+        return database.collection("subtitles").add(sub)
+        .then(function(docRef) {
+            console.log("Document written with ID: ", docRef.id);
+            sub.id = docRef.id;
+            resolve(sub);
+        })
+        .catch(function(error) {
+            console.error("Error adding document: ", error);
+            reject(error);
+        });
+    });
 }
 
 function broadcastActiveTabMessage(msg) {
