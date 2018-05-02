@@ -2,8 +2,7 @@ var subs = new Array();
 var API_KEY = '';
 const settings = {
     realTime: false
-}
-
+};
 
 firebase.initializeApp({
     apiKey: 'AIzaSyCoXpRAmfK7eVtL8-5NL_YjzYwFnCrTKa4',
@@ -12,7 +11,11 @@ firebase.initializeApp({
   });
 
   // Initialize Cloud Firestore through Firebase
-  var database = firebase.firestore();
+  const database = firebase.firestore();
+  const fireBaseSettings = {
+       timestampsInSnapshots: true
+    };
+    database.settings(fireBaseSettings);
 
 // http makes an HTTP request and calls callback with parsed JSON.
 var http = function (method, url, body, cb) {
@@ -139,10 +142,22 @@ function saveSubtitles(subs) {
 }
 
 function publishSub(tabId, sub) {
-    chrome.tabs.sendMessage(tabId, {
-        msg: "subtitlePublished",
-        sub: sub,
+    // Add a new document with a generated id.
+    database.collection("subtitles").add(sub)
+    .then(function(docRef) {
+        console.log("Document written with ID: ", docRef.id);
+        sub.id = docRef.id;
+        // todo: player.js should listen to realtime databse updates instead of the below message
+        chrome.tabs.sendMessage(tabId, {
+            msg: "subtitlePublished",
+            sub: sub,
+        });
+    })
+    .catch(function(error) {
+        console.error("Error adding document: ", error);
     });
+
+
 }
 
 function broadcastActiveTabMessage(msg) {

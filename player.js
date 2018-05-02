@@ -295,7 +295,6 @@ chrome.runtime.onMessage.addListener(
         let sub;
         if (!subs.subtitles) {
             subs.subtitles = [];
-            subs.nextId = 0;
         }
 
         // if the sentence is not finished yet, add it to the last subtile
@@ -306,9 +305,8 @@ chrome.runtime.onMessage.addListener(
             // if (sub.translation)
             //     translationRequested(lastSub, tabId);
         } else {
-            sub = {subtitle: subtitleText, id: subs.nextId};
+            sub = {subtitle: subtitleText};
             subs.subtitles.push(sub);
-            subs.nextId ++;
         }
 
         chrome.runtime.sendMessage({
