@@ -5,6 +5,7 @@ const settings = {
 };
 let database = null;
 let dbSubtitlesRef = null;
+let dbUsersRef = null;
 
 let lastSubRef = null;
 let lastSubText = null;
@@ -45,7 +46,10 @@ http('GET', chrome.runtime.getURL('config.json'), '', function (obj) {
     };
     database.settings(fireBaseSettings);
 
-    dbSubtitlesRef = database.collection("subtitles")
+    dbSubtitlesRef = database.collection("subtitles");
+    dbUserRef = database.collection("users").doc('thomas').set({
+        isWatching: true
+    })
 });
 
 // detect makes a Cloud Vision API request with the API key.
