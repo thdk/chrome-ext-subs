@@ -84,7 +84,7 @@ function init() {
         $subs.on("click", ".subtitle-wrapper .translate", (e) => {
             var $icon = $(e.currentTarget);
             var $parent = $icon.parent();
-            var subId = parseInt($parent.attr("data-sub-id"));
+            var subId = $parent.attr("data-sub-id");
             var hasTranslation = !$icon.hasClass("none");
             if (hasTranslation) {
                 ignoreTranslation(subId);
@@ -110,7 +110,7 @@ function init() {
         $subs.on("click", ".subtitle-wrapper .original p span", (e) => {
             var $span = $(e.currentTarget);
             var $parent = $span.parents(".subtitle-wrapper");
-            var subId = parseInt($parent.attr("data-sub-id"));
+            var subId = $parent.attr("data-sub-id");
             var text = $span.html().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
             // wait for more text
             if (e.ctrlKey) {
@@ -182,7 +182,7 @@ function addTranslationTodom(sub) {
 
 function addSubToDom(sub) {
     const $lastSubtitle = $subs.find('.subtitle-wrapper:last-child');
-    const continueLastSub = $lastSubtitle && parseInt($lastSubtitle.attr("data-sub-id")) === sub.id;
+    const continueLastSub = $lastSubtitle && $lastSubtitle.attr("data-sub-id") === sub.id;
     const $sub = $(`
         <div class="subtitle-wrapper" data-sub-id="${sub.id}">
             <div class="translate icon none">T</div>
@@ -230,6 +230,7 @@ chrome.runtime.onMessage.addListener(
                     alert("Subtiles could not be copied to the clipboard");
                 break;
             case "subtitlePublished":
+                subs.subtitles.push(request.sub);
                 addSubToDom(request.sub);
                 break;
             case "subtitleTranslated":
@@ -304,15 +305,17 @@ chrome.runtime.onMessage.addListener(
             sub = cloneSub(lastSub);
             // if (sub.translation)
             //     translationRequested(lastSub, tabId);
+            chrome.runtime.sendMessage({
+                msg: "updateSubTitle",
+                sub: sub
+            });
         } else {
             sub = {subtitle: subtitleText};
-            subs.subtitles.push(sub);
+            chrome.runtime.sendMessage({
+                msg: "newSubTitle",
+                sub: sub
+            });
         }
-
-        chrome.runtime.sendMessage({
-            msg: "newSubTitle",
-            sub: sub
-        });
     }
 
     function cloneSub(sub) {
