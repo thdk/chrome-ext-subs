@@ -252,6 +252,17 @@ chrome.runtime.onMessage.addListener(
             case "onBrowserAction":
                 sendResponse("player");
                 break;
+            case "togglePlayback":
+                var video = $video[0];
+                if (video.paused) { // if (request.play) {
+                    video.play();
+                    videoResumed();
+                }
+                else {
+                    video.pause();
+                    videoPaused();
+                }
+                break;
         }
     });
 
@@ -329,6 +340,8 @@ chrome.runtime.onMessage.addListener(
 
     function videoPaused() {
         requestTranslation();
+        $("#pauseBtn").toggleClass('inactive', true);
+        $("#playBtn").toggleClass('inactive', false);
         chrome.runtime.sendMessage({
             msg: "videoPaused",
         });
@@ -337,6 +350,8 @@ chrome.runtime.onMessage.addListener(
 
     function videoResumed() {
         $currentTranslation.empty();
+        $("#pauseBtn").toggleClass('inactive', false);
+        $("#playBtn").toggleClass('inactive', true);
         focusDocument();
     }
 
