@@ -309,24 +309,11 @@ chrome.runtime.onMessage.addListener(
             subs.subtitles = [];
         }
 
-        // if the sentence is not finished yet, add it to the last subtile
-        const lastSub = subs.subtitles[subs.subtitles.length - 1];
-        if (lastSub && !lastSub.subtitle.match(/[?.!]$/)) {
-            lastSub.subtitle += " " + subtitleText;
-            sub = cloneSub(lastSub);
-            // if (sub.translation)
-            //     translationRequested(lastSub, tabId);
-            chrome.runtime.sendMessage({
-                msg: "updateSubTitle",
-                sub: sub
-            });
-        } else {
-            sub = {subtitle: subtitleText};
-            chrome.runtime.sendMessage({
-                msg: "newSubTitle",
-                sub: sub
-            });
-        }
+        sub = {subtitle: subtitleText};
+        chrome.runtime.sendMessage({
+            msg: "newSubTitle",
+            sub: sub
+        });
     }
 
     function cloneSub(sub) {

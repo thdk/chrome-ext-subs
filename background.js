@@ -94,10 +94,6 @@ chrome.runtime.onMessage.addListener(
                 if (settings.realTime)
                     translationRequested(request.sub, sender.tab.id);
                 break;
-            case "updateSubTitle":
-                publishSub(sender.tab.id, request.sub);
-                if (settings.realTime)
-                    translationRequested(request.sub, sender.tab.id);
             case "videoPaused":
                 break;
             case "translationRequested":
