@@ -4,8 +4,7 @@
     "version": "1.0",
     "manifest_version": 2,
     "page_action": {
-      "default_popup": "popups/hello.html",
-      "default_icon": "hello_extensions.png"
+      "default_icon": "icon5.png"
     },
     "permissions": [
         "http://www.google.com/",
@@ -34,6 +33,11 @@
             "matches": ["http://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php*"],
             "css": ["mystyles.css"],
             "js": ["jquery-3.3.1.min.js", "player.js"]
+          },
+          {
+            "matches": ["https://www.stream.cz/*"],
+            "css": ["src/css/streamcz.css"],
+            "js": ["jquery-3.3.1.min.js", "src/js/generic.js", "src/js/streamcz.js"]
           }
       ],
       "content_security_policy":"script-src 'self' https://www.gstatic.com/ https://*.firebaseio.com https://www.googleapis.com; object-src 'self'",

@@ -10,6 +10,9 @@ let dbUsersRef = null;
 let lastSubRef = null;
 let lastSubText = null;
 
+
+let isActive = false;
+
 // http makes an HTTP request and calls callback with parsed JSON.
 var http = function (method, url, body, cb) {
     var xhr = new XMLHttpRequest();
@@ -53,7 +56,7 @@ http('GET', chrome.runtime.getURL('config.json'), '', function (obj) {
     });
 
     dbUserRef.onSnapshot(doc => {
-        broadcastAllTabsMessage({msg: "togglePlayback", play: doc.data().isWatching });
+        broadcastAllTabsMessage({ msg: "togglePlayback", play: doc.data().isWatching });
     });
 });
 
@@ -71,6 +74,10 @@ var translate = function (text, cb) {
     };
     http('POST', url, JSON.stringify(data), cb);
 };
+
+chrome.pageAction.onClicked.addListener(() => {
+    toggleActive();
+});
 
 chrome.runtime.onMessage.addListener(
     function (request, sender, sendResponse) {
@@ -101,7 +108,13 @@ chrome.runtime.onMessage.addListener(
                 return true;
                 break;
             case "videoAvailable":
-                setPageActionPopup("site");
+                switch (request.source) {
+                    case 'ceskatelevize':
+                        setPageActionPopup("site");
+                        break;
+                    default:
+                        setPageActionPopup("generic");
+                }
                 break;
             case "videoLoaded":
                 setPageActionPopup("player");
@@ -112,7 +125,44 @@ chrome.runtime.onMessage.addListener(
 function setPageActionPopup(popupName) {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
         chrome.pageAction.show(tabs[0].id);
-        chrome.pageAction.setPopup({ tabId: tabs[0].id, popup: "popups/" + popupName + ".html" });
+        if (popupName !== 'generic') {
+            chrome.pageAction.setPopup({ tabId: tabs[0].id, popup: "popups/" + popupName + ".html" });
+        }
+    });
+}
+
+function toggleActive() {
+    if (isActive)
+        deactivate();
+    else
+        activate();
+
+    isActive = !isActive;
+}
+
+function activate() {
+    broadcastActiveTabMessage({
+        msg: "extensionActivated"
+    });
+
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        chrome.pageAction.setIcon({
+            tabId: tabs[0].id,
+            path: "src/images/icon-active.png"
+        });
+    });
+}
+
+function deactivate() {
+    broadcastActiveTabMessage({
+        msg: "extensionDeactivated"
+    });
+
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        chrome.pageAction.setIcon({
+            tabId: tabs[0].id,
+            path: "src/images/icon.png"
+        });
     });
 }
 
