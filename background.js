@@ -58,6 +58,27 @@ http('GET', chrome.runtime.getURL('config.json'), '', function (obj) {
     dbUserRef.onSnapshot(doc => {
         broadcastAllTabsMessage({ msg: "togglePlayback", play: doc.data().isWatching });
     });
+
+    firebase.auth().onAuthStateChanged(user => {
+        chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+            chrome.pageAction.setPopup({ tabId: tabs[0].id, popup: "src/html/index.html" });
+        });
+        if (user) {
+            // User is signed in.
+            var displayName = user.displayName;
+            var email = user.email;
+            var emailVerified = user.emailVerified;
+            var photoURL = user.photoURL;
+            var isAnonymous = user.isAnonymous;
+            var uid = user.uid;
+            var providerData = user.providerData;
+            console.log(displayName);
+            // ...
+        } else {
+            // User is signed out.
+            console.log("out");
+        };
+    });
 });
 
 // detect makes a Cloud Vision API request with the API key.
@@ -75,8 +96,36 @@ var translate = function (text, cb) {
     http('POST', url, JSON.stringify(data), cb);
 };
 
+// TODO: remove below code,
+// but use the chrome identy on load of the extension to login if available
 chrome.pageAction.onClicked.addListener(() => {
-    toggleActive();
+
+    console.log("pageaction");
+    if (firebase.auth().currentUser) {
+        // firebase.auth().signOut();
+    }
+    else {
+        chrome.identity.getAuthToken({ interactive: false }, token => {
+            if (chrome.runtime.lastError)
+                console.log(chrome.runtime.lastError.message);
+
+            if (!token) {
+                // chrome.tabs.create({ url: 'src/html/index.html' });
+                setPageActionPopup('login');
+                return;
+            } else {
+                chrome.identity.getAuthToken({ interactive: true }, token => {
+                    if (chrome.runtime.lastError) {
+                        alert(chrome.runtime.lastError.message);
+                        return;
+                    }
+                    // chrome.identity.getProfileUserInfo(userInfo => {
+                    firebase.auth().signInAndRetrieveDataWithCredential(firebase.auth.GoogleAuthProvider.credential(null, token));
+                    // })
+                });
+            }
+        });
+    }
 });
 
 chrome.runtime.onMessage.addListener(
@@ -119,14 +168,41 @@ chrome.runtime.onMessage.addListener(
             case "videoLoaded":
                 setPageActionPopup("player");
                 break;
+            case "loggedIn": {
+                console.log("logged in message received");
+                // chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+                //     chrome.pageAction.setPopup({ tabId: tabs[0].id, popup: "../../popups/hello.html" });
+                // });
+                break;
+            }
+            case "activate": {
+                activate();
+                break;
+            }
+            case "deactivate": {
+                deactivate();
+                break;
+            }
+            case "openpopup": {
+                console.log("open popup message received");
+                sendResponse({isActive: isActive});
+                break;
+            }
         }
     });
 
 function setPageActionPopup(popupName) {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    chrome.tabs.query({ active: true }, function (tabs) {
+        if (!tabs || !tabs.length)
+            return;
+
         chrome.pageAction.show(tabs[0].id);
         if (popupName !== 'generic') {
-            chrome.pageAction.setPopup({ tabId: tabs[0].id, popup: "popups/" + popupName + ".html" });
+            if (popupName === 'login') {
+                chrome.pageAction.setPopup({ tabId: tabs[0].id, popup: "src/html/index.html" });
+            }
+            else
+                chrome.pageAction.setPopup({ tabId: tabs[0].id, popup: "popups/" + popupName + ".html" });
         }
     });
 }
@@ -137,10 +213,11 @@ function toggleActive() {
     else
         activate();
 
-    isActive = !isActive;
+
 }
 
 function activate() {
+    isActive = !isActive;
     broadcastActiveTabMessage({
         msg: "extensionActivated"
     });
@@ -154,6 +231,7 @@ function activate() {
 }
 
 function deactivate() {
+    isActive = !isActive;
     broadcastActiveTabMessage({
         msg: "extensionDeactivated"
     });
@@ -209,6 +287,7 @@ function saveSubtitles(subs) {
         msg: "subtitlesSaved",
     });
 }
+
 
 function publishSub(tabId, sub) {
     var subRef = null;

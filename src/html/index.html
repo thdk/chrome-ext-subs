@@ -1,0 +1,50 @@
+<html>
+
+<head>
+ <script src="https://cdn.firebase.com/libs/firebaseui/3.0.0/firebaseui.js"></script>
+<link type="text/css" rel="stylesheet" href="https://cdn.firebase.com/libs/firebaseui/3.0.0/firebaseui.css" />
+  <title>Login</title>
+  <style>
+    button {
+      padding: 10px;
+      background-color: #3C79F8;
+      display: inline-block;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- <button>Login</button> -->
+  <div class="login" style="display:none;">
+    <div id="firebaseui-auth-container"></div>
+    <div id="loader">Loading...</div>
+  </div>
+  <div class="loggedIn" style="display:none;">
+    <div class="firebaseui-card-content">
+      <ul class="firebaseui-idp-list">
+        <li class="firebaseui-list-item" style="display: none;">
+          <button id="activateButton" class="firebaseui-idp-google firebaseui-idp-button mdl-button mdl-js-button mdl-button--raised firebaseui-id-idp-button">
+            <span class="firebaseui-idp-text firebaseui-idp-text-short" style="padding-left: 0px;">Activate</span>
+          </button>
+        </li>
+        <li class="firebaseui-list-item" style="display: none;">
+          <button id="deactivateButton" class="firebaseui-idp-google firebaseui-idp-button mdl-button mdl-js-button mdl-button--raised firebaseui-id-idp-button">
+            <span class="firebaseui-idp-text firebaseui-idp-text-short" style="padding-left: 0px;">Deactivate</span>
+          </button>
+        </li>
+
+        <li class="firebaseui-list-item">
+          <button id="logoutButton" class="firebaseui-idp-google firebaseui-idp-button mdl-button mdl-js-button mdl-button--raised firebaseui-id-idp-button">
+            <span class="firebaseui-idp-text firebaseui-idp-text-short" style="padding-left: 0px;">Logout</span>
+          </button>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <script type="text/javascript" src="../js/oauth.js"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/5.0.4/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/5.0.4/firebase-auth.js"></script>
+</body>
+
+</html>

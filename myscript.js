@@ -4,12 +4,13 @@ $(function() {
     $iframe = $(".player").find("iframe");
     if ($iframe.length === 0)
         $iframe = $(".video-player").find("span");
-    
+
     if ($iframe.length !== 0)
     {
         chrome.runtime.sendMessage(
             {
-                msg: "videoAvailable"
+                msg: "videoAvailable",
+                source: "ceskatelevize"
             });
     }
 });

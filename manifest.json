@@ -1,13 +1,16 @@
 {
     "name": "Get czech subtitles",
+    "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvcQQaG8nG7ofmY+U1tl+X3IGBG3ufyVnLOIvn+pTXXUIE63LTfNDXz/k+Rs3GgEA7BTiepUKytDtsQBWRdFMorw9oYWpx+CnoxrG0KjTRQ2gNfHufYks6zuGlIiEhCjBLonBybFhZtl175XmVksX4vOS7TKypUukQNMFW0Uncl8j3TpsgfLSKyKUoGVLLl7t8ZpsKVN0qV5WTrF9K7kEv6wrRaKclFsJ6pDCI6Mfowp0uNOTtQM4hbomOXmgf5q+ZngGdAy11bXCfmlsLuEoqCiNrn8R+nIdjzbZDtcDq7OY+8dGRn/TLOI1dkduVhxpSKDHVAJ7eHzX2AuBcAxehQIDAQAB",
     "description" : "Base Level Extension",
     "version": "1.0",
     "manifest_version": 2,
     "page_action": {
-      "default_icon": "icon5.png"
+      "default_icon": "src/images/icon.png",
+      "default_popup": "src/html/index.html"
     },
     "permissions": [
         "http://www.google.com/",
+        "https://cdn.firebase.com/libs/firebaseui/2.5.1/firebaseui.js",
         "tabs",
         "identity"
     ],
@@ -40,12 +43,13 @@
             "js": ["jquery-3.3.1.min.js", "src/js/generic.js", "src/js/streamcz.js"]
           }
       ],
-      "content_security_policy":"script-src 'self' https://www.gstatic.com/ https://*.firebaseio.com https://www.googleapis.com; object-src 'self'",
+      "content_security_policy":"script-src 'self' https://cdn.firebase.com/ https://www.gstatic.com/ https://*.firebaseio.com https://www.googleapis.com https://apis.google.com; object-src 'self'",
       "oauth2": {
-        "client_id": "<YOUR_CLIENT_ID>",
+        "client_id": "724665517615-cn9rce7b9ovcs2cj53tlcigkoocofka4.apps.googleusercontent.com",
         "scopes": [
           "https://www.googleapis.com/auth/userinfo.email",
-          "https://www.googleapis.com/auth/userinfo.profile"
+          "https://www.googleapis.com/auth/userinfo.profile",
+          "https://www.googleapis.com/auth/contacts.readonly"
         ]
       }
   }
