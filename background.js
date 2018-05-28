@@ -5,7 +5,7 @@ const settings = {
 };
 let database = null;
 let dbSubtitlesRef = null;
-let dbUsersRef = null;
+let dbSessionRef = null;
 
 let lastSubRef = null;
 let lastSubText = null;
@@ -49,36 +49,7 @@ http('GET', chrome.runtime.getURL('config.json'), '', function (obj) {
     };
     database.settings(fireBaseSettings);
 
-    dbSubtitlesRef = database.collection("subtitles");
-    dbUserRef = database.collection("users").doc('thomas');
-    dbUserRef.set({
-        isWatching: true
-    });
 
-    dbUserRef.onSnapshot(doc => {
-        broadcastAllTabsMessage({ msg: "togglePlayback", play: doc.data().isWatching });
-    });
-
-    firebase.auth().onAuthStateChanged(user => {
-        chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-            chrome.pageAction.setPopup({ tabId: tabs[0].id, popup: "src/html/index.html" });
-        });
-        if (user) {
-            // User is signed in.
-            var displayName = user.displayName;
-            var email = user.email;
-            var emailVerified = user.emailVerified;
-            var photoURL = user.photoURL;
-            var isAnonymous = user.isAnonymous;
-            var uid = user.uid;
-            var providerData = user.providerData;
-            console.log(displayName);
-            // ...
-        } else {
-            // User is signed out.
-            console.log("out");
-        };
-    });
 });
 
 // detect makes a Cloud Vision API request with the API key.
@@ -185,7 +156,7 @@ chrome.runtime.onMessage.addListener(
             }
             case "openpopup": {
                 console.log("open popup message received");
-                sendResponse({isActive: isActive});
+                sendResponse({ isActive: isActive });
                 break;
             }
         }
@@ -207,31 +178,52 @@ function setPageActionPopup(popupName) {
     });
 }
 
-function toggleActive() {
-    if (isActive)
-        deactivate();
-    else
-        activate();
-
-
-}
-
 function activate() {
-    isActive = !isActive;
-    broadcastActiveTabMessage({
-        msg: "extensionActivated"
-    });
+    // check authentication before activation
+    const unsubscribeOAuthStateChanged = firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+            // add a new Session document to the session collection in cloud firestore
+            dbSessionRef = database.collection("sessions").doc();
+            dbSessionRef.set({
+                created: firebase.firestore.FieldValue.serverTimestamp(),
+                uid: user.uid,
+                isWatching: true
+            })
+                .then(function () {
+                    console.log("Document successfully written!");
+                })
+                .catch(function (error) {
+                    console.error("Error writing document: ", error);
+                });
 
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        chrome.pageAction.setIcon({
-            tabId: tabs[0].id,
-            path: "src/images/icon-active.png"
-        });
+            dbSessionRef.onSnapshot(doc => {
+                broadcastAllTabsMessage({ msg: "togglePlayback", play: doc.data().isWatching });
+            });
+
+            dbSubtitlesRef = dbSessionRef.collection("subtitles");
+
+            isActive = true;
+            broadcastActiveTabMessage({
+                msg: "extensionActivated"
+            });
+
+            chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+                chrome.pageAction.setIcon({
+                    tabId: tabs[0].id,
+                    path: "src/images/icon-active.png"
+                });
+            });
+        } else {
+            // User is signed out.
+            console.log("out");
+        };
+
+        unsubscribeOAuthStateChanged();
     });
 }
 
 function deactivate() {
-    isActive = !isActive;
+    isActive = false;
     broadcastActiveTabMessage({
         msg: "extensionDeactivated"
     });
