@@ -13,12 +13,13 @@ function load(options) {
 
 function activate() {
     $video.on("timeupdate.remotesubs", function () {
+        const currentTime = $video[0].currentTime;
         var subHtml = $subtitleShell.find("span").toArray().map(s => $(s).html());
         var sub = subHtml.join();
         if (lastSub !== sub && sub.trim() !== "") {
             lastSub = sub;
             subHtml.forEach(subItem => {
-                addSubtitle(subItem.replace(/^[-]/, ""));
+                addSubtitle(subItem.replace(/^[-]/, ""), currentTime);
             });
         }
     });
@@ -84,8 +85,8 @@ function waitForElementAsync(selector) {
     });
 }
 
-function addSubtitle(subtitleText) {
-    sub = { subtitle: subtitleText };
+function addSubtitle(subtitleText, time) {
+    sub = { subtitle: subtitleText, time };
     chrome.runtime.sendMessage({
         msg: "newSubTitle",
         sub: sub

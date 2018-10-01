@@ -323,7 +323,7 @@ function storeAsync(subRef, sub) {
     // wait for database to be initialized
     if (database == null) {
         console.log("database not ready. retry in 500ms");
-        return waitAsync(500, sub).then((s) => storeAsync(s));
+        return waitAsync(500).then(() => storeAsync(subRef, sub));
     }
 
     return new Promise((resolve, reject) => {
