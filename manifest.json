@@ -28,14 +28,14 @@
     },
     "content_scripts": [
         {
-            "matches": ["http://www.ceskatelevize.cz/*"],
+            "matches": ["https://www.ceskatelevize.cz/*"],
             "css": ["mystyles.css"],
-            "js": ["jquery-3.3.1.min.js", "myscript.js"]
+            "js": ["jquery-3.3.1.min.js", "myscript.js", "src/js/generic.js", "src/js/ceskatelevize.js"]
         },
         {
-            "matches": ["http://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php*"],
+            "matches": ["https://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php*"],
             "css": ["mystyles.css"],
-            "js": ["jquery-3.3.1.min.js", "player.js"]
+            "js": ["jquery-3.3.1.min.js", "src/js/generic.js", "src/js/ceskatelevize.js"]
           },
           {
             "matches": ["https://www.stream.cz/*"],
