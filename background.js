@@ -117,7 +117,7 @@ chrome.runtime.onMessage.addListener(
                 }
                 break;
             case "newSubTitle":
-                publishSub(sender.tab.id, request.sub);
+                publishSub(sender.tab.id, request.sub, request.canPublish);
                 if (settings.realTime)
                     translationRequested(request.sub, sender.tab.id);
                 break;
@@ -214,7 +214,7 @@ function activate() {
                         path: "src/images/icon-active.png"
                     });
                 }
-                else{
+                else {
                     console.log("Cant update page action icon. No tabs found.");
                 }
             });
@@ -286,7 +286,7 @@ function saveSubtitles(subs) {
 }
 
 
-function publishSub(tabId, sub) {
+function publishSub(tabId, sub, canPublish) {
     var subRef = null;
     if (lastSubRef) {
         subRef = lastSubRef;
@@ -305,12 +305,17 @@ function publishSub(tabId, sub) {
         lastSubText = null;
     }
 
-    storeAsync(subRef, sub).then(s => {
-        chrome.tabs.sendMessage(tabId, {
-            msg: "subtitlePublished",
-            sub: s,
+    // if a subtitle is spread over multiple lines,
+    // the next part will be followed immediately after this
+    // so better to wait and save them at once
+    if (canPublish || lastSubRef == null) {
+        storeAsync(subRef, sub).then(s => {
+            chrome.tabs.sendMessage(tabId, {
+                msg: "subtitlePublished",
+                sub: s,
+            });
         });
-    });
+    }
 }
 
 function waitAsync(delayInMs, resolveWith) {
