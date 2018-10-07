@@ -277,8 +277,6 @@ function saveSubtitles(subs) {
 
 
 function publishSub(tabId, sub, lineNumber, totalLines) {
-    sub.isMulti = false;
-
     var subRef = null;
     if (lastSubRef) {
         subRef = lastSubRef;
@@ -295,13 +293,12 @@ function publishSub(tabId, sub, lineNumber, totalLines) {
     else {
         lastSubRef = null;
         lastSubText = null;
-        sub.isMulti = totalLines > 1;
     }
 
     // if a subtitle is spread over multiple lines,
     // the next part will be followed immediately after this
     // so better to wait and save them at once
-    if ((totalLines > 1 && lineNumber != totalLines - 1) || lastSubRef == null) {
+    if ((totalLines == 1 || lineNumber == totalLines - 1) || lastSubRef == null) {
         storeAsync(subRef, sub).then(s => {
             chrome.tabs.sendMessage(tabId, {
                 msg: "subtitlePublished",
@@ -330,6 +327,7 @@ function storeAsync(subRef, sub) {
             return subRef.set(sub)
                 .then(() => {
                     console.log("Document written with ID: ", subRef.id);
+                    console.log(sub);
                     sub.id = subRef.id;
                     resolve(sub);
                 })

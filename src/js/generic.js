@@ -18,9 +18,10 @@ function activate() {
         var sub = subHtml.join();
         if (lastSub !== sub && sub.trim() !== "") {
             lastSub = sub;
+            const multi = subHtml.every(text => text.match(/[?.!]$/));
             for(var i = 0; i < subHtml.length; i++) {
                 var subItem = subHtml[i];
-                addSubtitle(subItem.replace(/^[-]/, ""), currentTime, i, subHtml.length);
+                addSubtitle(subItem.replace(/^[-]/, ""), currentTime, i, subHtml.length, subHtml.length > 1 && multi);
             };
         }
     });
@@ -86,8 +87,8 @@ function waitForElementAsync(selector) {
     });
 }
 
-function addSubtitle(subtitleText, time, lineNumber, totalLines) {
-    sub = { subtitle: subtitleText, time };
+function addSubtitle(subtitleText, time, lineNumber, totalLines, isMulti) {
+    sub = { subtitle: subtitleText, time, isMulti};
     chrome.runtime.sendMessage({
         msg: "newSubTitle",
         sub: sub,
