@@ -20,8 +20,7 @@ function activate() {
             lastSub = sub;
             for(var i = 0; i < subHtml.length; i++) {
                 var subItem = subHtml[i];
-                console.log(subHtml);
-                addSubtitle(subItem.replace(/^[-]/, ""), currentTime, i == subHtml.length - 1);
+                addSubtitle(subItem.replace(/^[-]/, ""), currentTime, i, subHtml.length);
             };
         }
     });
@@ -87,12 +86,13 @@ function waitForElementAsync(selector) {
     });
 }
 
-function addSubtitle(subtitleText, time, canPublish) {
-    sub = { subtitle: subtitleText, time, canPublish };
+function addSubtitle(subtitleText, time, lineNumber, totalLines) {
+    sub = { subtitle: subtitleText, time };
     chrome.runtime.sendMessage({
         msg: "newSubTitle",
         sub: sub,
-        canPublish
+        lineNumber,
+        totalLines
     });
 }
 

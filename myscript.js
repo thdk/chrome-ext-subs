@@ -1,5 +1,4 @@
 var $iframe;
-
 $(function() {
     $iframe = $(".player").find("iframe");
     if ($iframe.length === 0)

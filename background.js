@@ -109,15 +109,10 @@ chrome.runtime.onMessage.addListener(
                             msg: "openPlayer"
                         });
                         break;
-                    case "saveSubtitles":
-                        chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-                            saveSubtitles(tabs[0].id);
-                        });
-                        break;
                 }
                 break;
             case "newSubTitle":
-                publishSub(sender.tab.id, request.sub, request.canPublish);
+                publishSub(sender.tab.id, request.sub, request.lineNumber, request.totalLines);
                 if (settings.realTime)
                     translationRequested(request.sub, sender.tab.id);
                 break;
@@ -130,10 +125,10 @@ chrome.runtime.onMessage.addListener(
             case "videoAvailable":
                 switch (request.source) {
                     case 'ceskatelevize':
-                        setPageActionPopup("site");
+                        setPageActionPopup("site", sender.tab);
                         break;
                     default:
-                        setPageActionPopup("generic");
+                        setPageActionPopup("generic", sender.tab);
                 }
                 break;
             case "videoLoaded":
@@ -162,20 +157,15 @@ chrome.runtime.onMessage.addListener(
         }
     });
 
-function setPageActionPopup(popupName) {
-    chrome.tabs.query({ active: true }, function (tabs) {
-        if (!tabs || !tabs.length)
-            return;
-
-        chrome.pageAction.show(tabs[0].id);
+function setPageActionPopup(popupName, tab) {
+        chrome.pageAction.show(tab.id);
         if (popupName !== 'generic') {
             if (popupName === 'login') {
-                chrome.pageAction.setPopup({ tabId: tabs[0].id, popup: "src/html/index.html" });
+                chrome.pageAction.setPopup({ tabId: tab.id, popup: "src/html/index.html" });
             }
             else
-                chrome.pageAction.setPopup({ tabId: tabs[0].id, popup: "popups/" + popupName + ".html" });
+                chrome.pageAction.setPopup({ tabId: tab.id, popup: "popups/" + popupName + ".html" });
         }
-    });
 }
 
 function activate() {
@@ -286,7 +276,9 @@ function saveSubtitles(subs) {
 }
 
 
-function publishSub(tabId, sub, canPublish) {
+function publishSub(tabId, sub, lineNumber, totalLines) {
+    sub.isMulti = false;
+
     var subRef = null;
     if (lastSubRef) {
         subRef = lastSubRef;
@@ -303,12 +295,13 @@ function publishSub(tabId, sub, canPublish) {
     else {
         lastSubRef = null;
         lastSubText = null;
+        sub.isMulti = totalLines > 1;
     }
 
     // if a subtitle is spread over multiple lines,
     // the next part will be followed immediately after this
     // so better to wait and save them at once
-    if (canPublish || lastSubRef == null) {
+    if ((totalLines > 1 && lineNumber != totalLines - 1) || lastSubRef == null) {
         storeAsync(subRef, sub).then(s => {
             chrome.tabs.sendMessage(tabId, {
                 msg: "subtitlePublished",
@@ -355,6 +348,7 @@ function storeAsync(subRef, sub) {
 }
 
 function broadcastActiveTabMessage(msg) {
+    // TODO: better to use tab property of the sender argument of onMessage
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
         if (tabs && tabs.length) {
             chrome.tabs.sendMessage(tabs[0].id, msg);
