@@ -158,14 +158,14 @@ chrome.runtime.onMessage.addListener(
     });
 
 function setPageActionPopup(popupName, tab) {
-        chrome.pageAction.show(tab.id);
-        if (popupName !== 'generic') {
-            if (popupName === 'login') {
-                chrome.pageAction.setPopup({ tabId: tab.id, popup: "src/html/index.html" });
-            }
-            else
-                chrome.pageAction.setPopup({ tabId: tab.id, popup: "popups/" + popupName + ".html" });
+    chrome.pageAction.show(tab.id);
+    if (popupName !== 'generic') {
+        if (popupName === 'login') {
+            chrome.pageAction.setPopup({ tabId: tab.id, popup: "src/html/index.html" });
         }
+        else
+            chrome.pageAction.setPopup({ tabId: tab.id, popup: "popups/" + popupName + ".html" });
+    }
 }
 
 function activate() {
@@ -174,6 +174,7 @@ function activate() {
         if (user) {
             // add a new Session document to the session collection in cloud firestore
             dbSessionRef = database.collection("sessions").doc();
+
             dbSessionRef.set({
                 created: firebase.firestore.FieldValue.serverTimestamp(),
                 uid: user.uid,
@@ -186,16 +187,17 @@ function activate() {
                     console.error("Error writing document: ", error);
                 });
 
+            // register for updates on this session
             dbSessionRef.onSnapshot(doc => {
                 broadcastAllTabsMessage({ msg: "togglePlayback", play: doc.data().isWatching });
             });
-
-            dbSubtitlesRef = dbSessionRef.collection("subtitles");
 
             isActive = true;
             broadcastActiveTabMessage({
                 msg: "extensionActivated"
             });
+
+            dbSubtitlesRef = database.collection("subtitles");
 
             chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
                 if (tabs.length) {
@@ -294,6 +296,9 @@ function publishSub(tabId, sub, lineNumber, totalLines) {
         lastSubRef = null;
         lastSubText = null;
     }
+
+    // set the current session id on the sub
+    sub.sessionId = dbSessionRef.id;
 
     // if a subtitle is spread over multiple lines,
     // the next part will be followed immediately after this
