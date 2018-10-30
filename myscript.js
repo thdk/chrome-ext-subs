@@ -14,7 +14,7 @@ $(function() {
     }
 
     // TODO: use a config setting for the iframe source
-    document.querySelector("body").insertAdjacentHTML("beforeend", `<iframe id="rst-iframe" src="https://czech-subs-1520975638509.firebaseapp.com/"/>`);
+    document.querySelector("body").insertAdjacentHTML("beforeend", `<iframe id="rst-iframe" src="https://czech-subs-1520975638509.firebaseapp.com?iframe=true"/>`);
 
 });
 

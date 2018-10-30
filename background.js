@@ -1,7 +1,7 @@
 var subs = new Array();
 var API_KEY = '';
 const settings = {
-    realTime: true
+    isRealtimeTranslated: true
 };
 let database = null;
 let dbSubtitlesRef = null;
@@ -199,9 +199,12 @@ function activate() {
 
             // register for updates on this session
             dbSessionRef.onSnapshot(doc => {
-                if (currentSession.isWatching !== doc.data().isWatching) {
-                    broadcastAllTabsMessage({ msg: "togglePlayback", play: doc.data().isWatching });
+                const session = doc.data();
+                if (currentSession.isWatching !== session.isWatching) {
+                    broadcastAllTabsMessage({ msg: "togglePlayback", play: session.isWatching });
                 }
+
+                settings.isRealtimeTranslated = session.isRealtimeTranslated;
             });
 
             isActive = true;
@@ -345,7 +348,7 @@ function publishSub(tabId, sub, lineNumber, totalLines) {
 
 function preProcessSubAsync(sub) {
     return new Promise((resolve, reject) => {
-        if (settings.realTime)
+        if (settings.isRealtimeTranslated)
             translate(sub.subtitle, (response) => {
                 sub.translation = response.data.translations[0].translatedText;
                 resolve(sub);
