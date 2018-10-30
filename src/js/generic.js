@@ -25,6 +25,14 @@ function activate() {
             };
         }
     });
+
+    $video.on("play.remotesubs", function () {
+        sendMessage("videoplayed");
+    });
+
+    $video.on("pause.remotesubs", function () {
+        sendMessage("videopaused");
+    });
 }
 
 function deactivate() {
@@ -36,7 +44,7 @@ chrome.runtime.onMessage.addListener(
         switch (request.msg) {
             case "togglePlayback":
                 const video = $video[0];
-                if (video.paused) {
+                if (request.play) {
                     video.play();
                     // videoResumed();
                 }

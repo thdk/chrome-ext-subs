@@ -1,7 +1,7 @@
 var subs = new Array();
 var API_KEY = '';
 const settings = {
-    realTime: false
+    realTime: true
 };
 let database = null;
 let dbSubtitlesRef = null;
@@ -12,6 +12,8 @@ let lastSubText = null;
 
 
 let isActive = false;
+
+let currentSession = {};
 
 // http makes an HTTP request and calls callback with parsed JSON.
 var http = function (method, url, body, cb) {
@@ -113,10 +115,14 @@ chrome.runtime.onMessage.addListener(
                 break;
             case "newSubTitle":
                 publishSub(sender.tab.id, request.sub, request.lineNumber, request.totalLines);
-                if (settings.realTime)
-                    translationRequested(request.sub, sender.tab.id);
                 break;
-            case "videoPaused":
+            case "videopaused":
+                currentSession.isWatching = false;
+                updateCurrentSession();
+                break;
+            case "videoplayed":
+                currentSession.isWatching = true;
+                updateCurrentSession();
                 break;
             case "translationRequested":
                 translationRequested(request.sub, sender.tab.id, request.text);
@@ -175,11 +181,15 @@ function activate() {
             // add a new Session document to the session collection in cloud firestore
             dbSessionRef = database.collection("sessions").doc();
 
-            dbSessionRef.set({
-                created: firebase.firestore.FieldValue.serverTimestamp(),
-                uid: user.uid,
-                isWatching: true
-            })
+            currentSession = {
+                ...{
+                    created: firebase.firestore.FieldValue.serverTimestamp(),
+                    uid: user.uid,
+                    isWatching: true
+                }, ...currentSession
+            };
+
+            dbSessionRef.set(currentSession)
                 .then(function () {
                     console.log("Document successfully written!");
                 })
@@ -189,7 +199,9 @@ function activate() {
 
             // register for updates on this session
             dbSessionRef.onSnapshot(doc => {
-                broadcastAllTabsMessage({ msg: "togglePlayback", play: doc.data().isWatching });
+                if (currentSession.isWatching !== doc.data().isWatching) {
+                    broadcastAllTabsMessage({ msg: "togglePlayback", play: doc.data().isWatching });
+                }
             });
 
             isActive = true;
@@ -217,6 +229,18 @@ function activate() {
 
         unsubscribeOAuthStateChanged();
     });
+}
+
+function updateCurrentSession() {
+    console.log("storing currentSession: ");
+    console.log(currentSession);
+    dbSessionRef.update(currentSession)
+        .then(function () {
+            console.log("Document successfully updated!");
+        })
+        .catch(function (error) {
+            console.error("Error updating document: ", error);
+        });
 }
 
 function deactivate() {
@@ -277,7 +301,7 @@ function saveSubtitles(subs) {
     });
 }
 
-
+let waitFor = new Promise(resolve => resolve());
 function publishSub(tabId, sub, lineNumber, totalLines) {
     var subRef = null;
     if (lastSubRef) {
@@ -303,14 +327,33 @@ function publishSub(tabId, sub, lineNumber, totalLines) {
     // if a subtitle is spread over multiple lines,
     // the next part will be followed immediately after this
     // so better to wait and save them at once
+
+    // TODO: waitFor can be optimized, translations (preProcessSubAsync) can be done parallel,
+    // but storing the result must be in the correct order.
+    // Using waitFor technique will not run parallel translations.
     if ((totalLines == 1 || lineNumber == totalLines - 1) || lastSubRef == null) {
-        storeAsync(subRef, sub).then(s => {
-            chrome.tabs.sendMessage(tabId, {
-                msg: "subtitlePublished",
-                sub: s,
+            waitFor.then(() => waitFor = preProcessSubAsync(sub))
+            .then(processedSub => storeAsync(subRef, processedSub))
+            .then(storedSub => {
+                chrome.tabs.sendMessage(tabId, {
+                    msg: "subtitlePublished",
+                    sub: storedSub,
+                });
             });
-        });
     }
+}
+
+function preProcessSubAsync(sub) {
+    return new Promise((resolve, reject) => {
+        if (settings.realTime)
+            translate(sub.subtitle, (response) => {
+                sub.translation = response.data.translations[0].translatedText;
+                resolve(sub);
+            });
+        else {
+            resolve(sub);
+        }
+    });
 }
 
 function waitAsync(delayInMs, resolveWith) {
@@ -319,6 +362,7 @@ function waitAsync(delayInMs, resolveWith) {
     });
 }
 
+var storeRequests = [];
 function storeAsync(subRef, sub) {
     // wait for database to be initialized
     if (database == null) {
