@@ -185,7 +185,8 @@ function activate() {
                 ...{
                     created: firebase.firestore.FieldValue.serverTimestamp(),
                     uid: user.uid,
-                    isWatching: true
+                    isWatching: true,
+                    isRealtimeTranslated: settings.isRealtimeTranslated
                 }, ...currentSession
             };
 
