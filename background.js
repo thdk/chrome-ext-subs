@@ -377,6 +377,7 @@ function storeAsync(subRef, sub) {
     return new Promise((resolve, reject) => {
         if (!sub.id) {
             sub.created = firebase.firestore.FieldValue.serverTimestamp();
+            sub.modified = firebase.firestore.FieldValue.serverTimestamp();
             return subRef.set(sub)
                 .then(() => {
                     console.log("Document written with ID: ", subRef.id);
